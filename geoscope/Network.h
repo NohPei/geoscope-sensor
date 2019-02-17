@@ -1,0 +1,26 @@
+// Network.h
+
+#ifndef _NETWORK_h
+#define _NETWORK_h
+
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "arduino.h"
+#else
+	#include "WProgram.h"
+#endif
+
+#include "main.h"
+#include <IPAddress.h>
+
+extern char SSID[32], PASSWORD[32];
+extern IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP;
+
+void networkSetup();
+void wifiSetup();
+void loadWifiConfig();
+void saveWifiConfig();
+void initWifiConfig();
+void showWifiConfig();
+
+#endif
+
