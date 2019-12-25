@@ -27,12 +27,6 @@ void adcSetup() {
 	// Gain setup
 	gainLoad();
 	changeAmplifierGain(amplifierGain);
-	//pinMode(gain_d0, OUTPUT);
-	//digitalWrite(gain_d0, HIGH);
-	//pinMode(gain_d1, OUTPUT);
-	//digitalWrite(gain_d1, LOW);
-	//pinMode(gain_d2, OUTPUT);
-	//digitalWrite(gain_d2, LOW);
 
 	// TIMER1 ISR Setup
 	timer1_isr_init();
@@ -41,7 +35,6 @@ void adcSetup() {
 }
 
 void interuptDisable() {
-	Serial.println("> Disable Interrupt.");
 	timer1_detachInterrupt();
 	timer1_disable();
 	fullfilledBuffer = false;
@@ -49,7 +42,6 @@ void interuptDisable() {
 }
 
 void interuptEnable() {
-	Serial.println("> Enable Interrupt.");
 	timer1_attachInterrupt(dataRead_isr);
 	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);			// 80MHz / 16 = 5MHz
 	//timer1_write(2500);									// 0.2us * 2500 500us -> 2K sample per secound
@@ -142,8 +134,8 @@ void changeAmplifierGain(int val) {
 		break;
 	default:
 		digitalWrite(gain_d0, HIGH);
-		digitalWrite(gain_d1, LOW);
-		digitalWrite(gain_d2, LOW);
+		digitalWrite(gain_d1, HIGH);
+		digitalWrite(gain_d2, HIGH);
 		break;
 	}
 

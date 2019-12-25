@@ -18,12 +18,12 @@ MQTTClient mqttclient(MQTT_PACKAGE_SIZE);
 
 int reAttempCounter = 0;
 
-int amplifierGain = 1;
+int amplifierGain = 100;
 
 void mqttSetup() {
-	// mqttLoad();
+	strcpy(MQTT_BROKER_IP, "192.168.60.100");
+	MQTT_BROKER_PORT = 18884;
 	mqttclient.begin(MQTT_BROKER_IP, MQTT_BROKER_PORT, wifiClient);
-	//mqttclient.setOptions(30, true, 2000);
 	mqttclient.onMessage(mqttOnMessage);
 
 	if (!mqttclient.connected()) {
@@ -99,38 +99,30 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		// Set new amplifier gain value
 		amplifierGain = in_payload.toInt();
 		changeAmplifierGain(amplifierGain);
-		payload = payloadHeader;
-		payload += "Set new gain to "+ in_payload +"]\"}";
-		mqttclient.publish("geoscope/reply", payload);
+		String payloads = payloadHeader;
+		payloads += "Set new gain to "+ in_payload +"]\"}";
+		mqttclient.publish("geoscope/reply", payloads);
 		delay(10);
 		interuptEnable();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {
 		interuptDisable();
-		payload = payloadHeader;
-		payload += "Restart]\"}";
-		mqttclient.publish("geoscope/reply", payload);
+		String payloads = payloadHeader;
+		payloads += "Restart]\"}";
+		mqttclient.publish("geoscope/reply", payloads);
 		delay(10);
 		forceReset();
 	}
-
-	Serial.println("----------------------------------------------------------------------");
+	else if (topic.equalsIgnoreCase("geoscope/hb")) {
+		String payloads = payloadHeader;
+		payloads += MQTT_CLIENT_ID_FULL;
+		payloads += " working.]\"}";
+		mqttclient.publish("geoscope/reply", payloads);
+	}
 }
 
-void mqttInit() {
-	Serial.println("======================================================================");
-	Serial.println("## Initial MQTT Configuration.");
-	strcpy(MQTT_BROKER_IP, "192.168.60.60");
-	MQTT_BROKER_PORT = 18884;
-	Serial.println("## MQTT Configuration.");
-	Serial.print("> BROKER IP: ");
-	Serial.println(MQTT_BROKER_IP);
-	Serial.print("> BROKER PORT: ");
-	Serial.println(MQTT_BROKER_PORT);
-	Serial.println("----------------------------------------------------------------------");
-
-	// mqttSave();
-}
+//void mqttInit() {
+//}
 
 //void mqttLoad() {
 //	Serial.println("======================================================================");
@@ -168,5 +160,3 @@ void mqttInit() {
 //	EEPROM.end();
 //	Serial.println("----------------------------------------------------------------------");
 //}
-
-

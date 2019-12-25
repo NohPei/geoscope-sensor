@@ -10,7 +10,7 @@
 #endif
 
 #include "main.h"
-#include "Timer_c.h"
+//#include "Timer_c.h"
 #include "Watchdog.h"
 #include "ADCModule.h"
 #include <MQTT.h>						// arduino editor
@@ -25,9 +25,9 @@ extern int MQTT_BROKER_PORT;
 void mqttSetup();
 void mqttConnect();
 void mqttSend();
-void mqttInit();
-void mqttLoad();
-void mqttSave();
+//void mqttInit();
+//void mqttLoad();
+//void mqttSave();
 void mqttOnMessage(String &topic, String &payload);
 
 #endif

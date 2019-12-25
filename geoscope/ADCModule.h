@@ -25,4 +25,3 @@ void gainSave();
 void gainLoad();
 
 #endif
-

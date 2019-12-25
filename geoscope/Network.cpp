@@ -14,24 +14,14 @@ void networkSetup() {
 
 void wifiSetup() {
 	delay(10);
-
-	Serial.println("======================================================================");
-	Serial.println("## Wifi Setup.");
-	Serial.println("> Disconnect from current Network.");
+	WiFi.softAPdisconnect(true);
 	WiFi.disconnect();
-	Serial.println("> Wifi Configure.");
 	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK);
-	Serial.print("> Start Connecting to ");
-	Serial.println(SSID);
+//	Serial.println(SSID);
 	WiFi.begin(SSID, PASSWORD);
-	Serial.print("> ");
 	while (WiFi.status() != WL_CONNECTED) {
-		Serial.print(".");
 		delay(500);
 	}
-	Serial.println(".");
-	Serial.println("> Wifi Connected.");
-	Serial.println("----------------------------------------------------------------------");
 }
 
 //void loadWifiConfig() {
@@ -69,29 +59,26 @@ void wifiSetup() {
 //}
 
 void initWifiConfig() {
-	Serial.println("======================================================================");
-	Serial.println("## Initial Wifi Configuration.");
 	strcpy(SSID, "GEOSCOPE");
 	strcpy(PASSWORD, "soupgeoscope");
 	GEOSCOPE_IP = IPAddress(192,168,60, DEVICE_IP);
 	GATEWAY_IP = IPAddress(192, 168, 60, 1);
 	NETMASK = IPAddress(255, 255, 255, 0);
-	showWifiConfig();
-	Serial.println("----------------------------------------------------------------------");
+	//showWifiConfig();
 
 	//saveWifiConfig();
 }
 
-void showWifiConfig() {
-	Serial.println("## Wifi Configuration.");
-	Serial.print("> SSID: ");
-	Serial.println(SSID);
-	Serial.print("> PASSWORD: ");
-	Serial.println(PASSWORD);
-	Serial.print("> IP: ");
-	Serial.println(GEOSCOPE_IP.toString());
-	Serial.print("> GATEWAY: ");
-	Serial.println(GATEWAY_IP.toString());
-	Serial.print("> NETMASK: ");
-	Serial.println(NETMASK.toString());
-}
+//void showWifiConfig() {
+//	Serial.println("## Wifi Configuration.");
+//	Serial.print("> SSID: ");
+//	Serial.println(SSID);
+//	Serial.print("> PASSWORD: ");
+//	Serial.println(PASSWORD);
+//	Serial.print("> IP: ");
+//	Serial.println(GEOSCOPE_IP.toString());
+//	Serial.print("> GATEWAY: ");
+//	Serial.println(GATEWAY_IP.toString());
+//	Serial.print("> NETMASK: ");
+//	Serial.println(NETMASK.toString());
+//}
