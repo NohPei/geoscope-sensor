@@ -70,13 +70,13 @@ void mqttConnect() {
 	else
 	{
 		reAttempCounter++;
-		delay(1000);
+		minYield(1000);
 	}
 }
 
 void mqttSend() {
 	mqttclient.loop();
-	delay(10);
+	minYield(10);
 
 	if (fullfilledBuffer) {
 		int buffer_row = 0;
@@ -114,7 +114,7 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		String payloads = payloadHeader;
 		payloads += "Set new gain to "+ in_payload +"]\"}";
 		mqttclient.publish("geoscope/reply", payloads);
-		delay(10);
+		minYield(10);
 		interuptEnable();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {
@@ -122,7 +122,7 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		String payloads = payloadHeader;
 		payloads += "Restart]\"}";
 		mqttclient.publish("geoscope/reply", payloads);
-		delay(10);
+		minYield(10);
 		forceReset();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/hb")) {

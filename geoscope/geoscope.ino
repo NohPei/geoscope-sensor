@@ -19,7 +19,7 @@ void setup() {
 	Serial.println("\n> Starting Geoscope Boot");
 	initWifiConfig();
 	wifiSetup();
-	delay(1000);
+	minYield(1000);
 	//timeSetup();
 	Serial.println("> WiFi Connected");
 	//	//timeSetup();

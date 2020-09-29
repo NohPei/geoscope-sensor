@@ -14,14 +14,14 @@ void networkSetup() {
 }
 
 void wifiSetup() {
-	delay(10);
+	minYield(10);
 	WiFi.softAPdisconnect(true);
 	WiFi.disconnect();
 	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK);
 //	Serial.println(SSID);
 	WiFi.begin(SSID, PASSWORD);
 	while (WiFi.status() != WL_CONNECTED) {
-		delay(500);
+		minYield(500);
 	}
 }
 
