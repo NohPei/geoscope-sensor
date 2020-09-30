@@ -259,3 +259,14 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+
+# Ctags (Vim/Emacs/Arduino)
+tags
+
+# Platform.io
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+.pio
+compile_commands.json
