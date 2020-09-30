@@ -89,8 +89,11 @@ void mqttSend() {
 		payload = payloadHeader;
 		for (int i = 0; i < RAW_COL_BUFFER_SIZE; i++) {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
+			if (dataDump) {
+				Serial.println(rawBuffer[buffer_row][i]);
+			}
 		}
-		payload += String(rawBuffer[buffer_row][RAW_COL_BUFFER_SIZE - 1]) + "]\",\"gain\":" + String(amplifierGain) + "}";
+		payload += "]\",\"gain\":" + String(amplifierGain) + "}";
 
 		if (!mqttclient.connected()) {
 			mqttConnect();

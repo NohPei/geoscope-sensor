@@ -27,5 +27,6 @@ extern int amplifierGain;
 extern bool fullfilledBuffer;
 extern int currentBufferRow;
 extern uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
+bool dataDump = false;
 
 #endif

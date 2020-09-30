@@ -3,6 +3,7 @@
 #include "Watchdog.h"
 #include "Network.h"
 #include "MQTTService.h"
+#include "main.h"
 
 #define CHAR_BUF_SIZE 32
 
@@ -263,14 +264,13 @@ void usage_adc() {
 				" 		valid gains are: 0,1,2,5,10,20,50,100\n"
 				" 		all other values are equivalent to 100\n"
 				"\n"
-				// " 	dump: starts dumping raw data for testing\n"
-				// " 		any incoming character will stop the dumping\n"
+				" 	dump: starts dumping raw data for testing\n"
+				" 		any incoming character will stop the dumping\n"
 				" 	help: prints this usage\n"
 			));
 }
 
 void cli_adc(int argc, char** argv) {
-	//TODO: get/set gain, enable dumping mode
 	if (!argc) {
 		usage_adc();
 		return;
@@ -295,6 +295,12 @@ void cli_adc(int argc, char** argv) {
 				Serial.println(amplifierGain);
 			}
 			break;
+		case 'd': //dump
+			Serial.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
+			minYield(2000); //wait a couple seconds for the user to read the info
+			dataDump = true; //enables data dumping mode
+			break;
+
 
 	}
 }

@@ -12,6 +12,7 @@
 #include "Network.h"
 #include "cli.h"
 #include <ArduinoOTA.h>
+#include "main.h"
 
 void setup() {
 	Serial.begin(115200);
@@ -22,6 +23,8 @@ void setup() {
 	mqttSetup();
 	adcSetup();
 	//fetchTime();
+	cliInit();
+	dataDump = false;
 
 	// OTA Setup
 	ArduinoOTA.begin();
@@ -33,7 +36,17 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	ArduinoOTA.handle();
-	cmdPoll();
 	mqttSend();
 	ESP.wdtFeed();
+	if (dataDump) {
+		if (Serial.available()) { //if a character has come in
+			dataDump = false; //stop dumping
+			while (Serial.available()) //dump out the incoming buffer
+				Serial.read();
+		}
+	}
+	else { //if we're not dumping data
+		cmdPoll();
+
+	}
 }
