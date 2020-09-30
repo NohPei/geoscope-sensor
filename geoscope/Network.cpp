@@ -3,6 +3,7 @@
 // 
 
 #include "Network.h"
+#include "Watchdog.h"
 
 char SSID[32], PASSWORD[32];
 IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP;

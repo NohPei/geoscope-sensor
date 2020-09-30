@@ -17,10 +17,6 @@
 #define RAW_COL_BUFFER_SIZE 500
 
 #define DEVICE_IP 152
-#define MQTT_CLIENT_ID "152"
-#define MQTT_CLIENT_ID_FULL "GEOSCOPE-" MQTT_CLIENT_ID
-#define MQTT_PUB_TOPIC "geoscope/node1/" MQTT_CLIENT_ID
-#define MQTT_PAYLOAD_HEADER "{\"uuid\":\"" MQTT_CLIENT_ID_FULL "\",\"data\":\"["
 
 
 

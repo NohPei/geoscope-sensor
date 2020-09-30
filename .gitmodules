@@ -1,0 +1,3 @@
+[submodule "geoscope/libraries/CmdArduino"]
+	path = geoscope/libraries/CmdArduino
+	url = https://github.com/leojz/CmdArduino.git

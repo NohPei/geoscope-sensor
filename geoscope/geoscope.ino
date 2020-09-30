@@ -10,6 +10,7 @@
 #include "ADCModule.h"
 #include "MQTTService.h"
 #include "Network.h"
+#include "cli.h"
 #include <ArduinoOTA.h>
 
 void setup() {
@@ -18,12 +19,11 @@ void setup() {
 	wifiSetup();
 	delay(1000);
 	//timeSetup();
-  mqttSetup();
+	mqttSetup();
 	adcSetup();
 	//fetchTime();
 
 	// OTA Setup
-	ArduinoOTA.setHostname(MQTT_CLIENT_ID_FULL);
 	ArduinoOTA.begin();
 
 	ESP.wdtDisable();
@@ -33,6 +33,7 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	ArduinoOTA.handle();
+	cmdPoll();
 	mqttSend();
 	ESP.wdtFeed();
 }

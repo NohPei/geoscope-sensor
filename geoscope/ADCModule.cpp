@@ -128,10 +128,6 @@ void changeAmplifierGain(int val) {
 		digitalWrite(gain_d2, HIGH);
 		break;
 	case 100:
-		digitalWrite(gain_d0, HIGH);
-		digitalWrite(gain_d1, HIGH);
-		digitalWrite(gain_d2, HIGH);
-		break;
 	default:
 		digitalWrite(gain_d0, HIGH);
 		digitalWrite(gain_d1, HIGH);

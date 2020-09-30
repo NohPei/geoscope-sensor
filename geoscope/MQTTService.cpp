@@ -4,14 +4,17 @@
 
 
 #include "MQTTService.h"
+#include <ArduinoOTA.h>
+#include "Network.h"
 
-char MQTT_BROKER_IP[32];
+char* MQTT_BROKER_IP = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
 
-const char *clientId = MQTT_CLIENT_ID_FULL;
-const String MQTT_TOPIC = MQTT_PUB_TOPIC;
-String payloadHeader = MQTT_PAYLOAD_HEADER;
-String payload = payloadHeader;
+
+String clientId = "152";
+String 	MQTT_TOPIC,
+	payloadHeader,
+	payload;
 
 WiFiClient wifiClient;
 MQTTClient mqttclient(MQTT_PACKAGE_SIZE);
@@ -21,8 +24,12 @@ int reAttempCounter = 0;
 int amplifierGain = 100;
 
 void mqttSetup() {
-	strcpy(MQTT_BROKER_IP, "192.168.60.100");
-	MQTT_BROKER_PORT = 18884;
+	MQTT_TOPIC = "geoscope/node1/" + clientId;
+	payloadHeader = "{\"uuid\":\"GEOSCOPE-" + clientId + "\",\"data\":\"[";
+	WiFi.hostname("GECOSCOPE-"+clientId);
+	ArduinoOTA.setHostname(("GEOSCOPE-"+clientId).c_str());
+
+
 	mqttclient.begin(MQTT_BROKER_IP, MQTT_BROKER_PORT, wifiClient);
 	mqttclient.onMessage(mqttOnMessage);
 
@@ -52,7 +59,7 @@ void mqttConnect() {
 	}
 	// Attempt to connect
 	mqttclient.disconnect();
-	if (mqttclient.connect(clientId))
+	if (mqttclient.connect(("GEOSCOPE-" + clientId).c_str()))
 	{
 		reAttempCounter = 0;
 		// Subscribe to topic geoscope/config/gain
@@ -94,6 +101,7 @@ void mqttSend() {
 }
 
 void mqttOnMessage(String & topic, String & in_payload) {
+	String payload;
 	if (topic.equalsIgnoreCase("geoscope/config/gain")) {
 		interuptDisable();
 		// Set new amplifier gain value
@@ -114,10 +122,10 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		forceReset();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/hb")) {
-		String payloads = payloadHeader;
-		payloads += MQTT_CLIENT_ID_FULL;
-		payloads += " working.]\"}";
-		mqttclient.publish("geoscope/reply", payloads);
+		payload = payloadHeader;
+		payload += "GEOSCOPE-" + clientId;
+		payload += " working.]\"}";
+		mqttclient.publish("geoscope/reply", payload);
 	}
 }
 
