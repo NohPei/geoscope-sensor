@@ -5,7 +5,7 @@
 #include "Network.h"
 #include "Watchdog.h"
 
-char SSID[32], PASSWORD[32];
+char SSID[CHAR_BUF_SIZE], PASSWORD[CHAR_BUF_SIZE];
 IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP;
 
 void networkSetup() {
@@ -60,10 +60,10 @@ void wifiSetup() {
 //}
 
 void initWifiConfig() {
-	strcpy(SSID, "GEOSCOPE");
-	strcpy(PASSWORD, "soupgeoscope");
-	GEOSCOPE_IP = IPAddress(192,168,60, DEVICE_IP);
-	GATEWAY_IP = IPAddress(192, 168, 60, 1);
+	strcpy(SSID, "The Promised LAN");
+	strcpy(PASSWORD, "GoBucks!");
+	GEOSCOPE_IP = IPAddress(10,147,20, DEVICE_IP);
+	GATEWAY_IP = IPAddress(10, 147, 20, 1);
 	NETMASK = IPAddress(255, 255, 255, 0);
 	//showWifiConfig();
 

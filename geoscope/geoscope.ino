@@ -1,8 +1,8 @@
 /*
- Name:		geoscope.ino
- Created:	6/13/2018 1:34:31 PM
- Author:	Sripong
-*/
+Name:		geoscope.ino
+Created:	6/13/2018 1:34:31 PM
+Author:	Sripong
+ */
 
 // the setup function runs once when you press reset or power the board
 #include "Watchdog.h"
@@ -16,37 +16,39 @@
 
 void setup() {
 	Serial.begin(115200);
+	Serial.println("\n> Starting Geoscope Boot");
 	initWifiConfig();
 	wifiSetup();
 	delay(1000);
 	//timeSetup();
+	Serial.println("> WiFi Connected");
+	//	//timeSetup();
 	mqttSetup();
+	Serial.println("> MQTT Configured");
 	adcSetup();
-	//fetchTime();
+	Serial.println("> ADC Configured");
+	//	//fetchTime();
 	cliInit();
-	dataDump = false;
+	Serial.println("> CLI Ready");
 
 	// OTA Setup
 	ArduinoOTA.begin();
+	Serial.println("> OTA Ready");
 
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
+	Serial.println("> Boot Complete");
 }
 
 // the loop function runs over and over again until power down or reset
 void loop() {
 	ArduinoOTA.handle();
 	mqttSend();
-	ESP.wdtFeed();
-	if (dataDump) {
-		if (Serial.available()) { //if a character has come in
-			dataDump = false; //stop dumping
-			while (Serial.available()) //dump out the incoming buffer
-				Serial.read();
-		}
-	}
-	else { //if we're not dumping data
-		cmdPoll();
+	
 
+	if (cli.isStreaming() && cli.getInputPort()->available()) {
+		cli.stopStreaming();
 	}
+	cli.update();
+	ESP.wdtFeed();
 }

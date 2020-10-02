@@ -18,7 +18,7 @@
 
 #define MQTT_PACKAGE_SIZE 15000
 
-extern char* MQTT_BROKER_IP;
+extern char MQTT_BROKER_IP[CHAR_BUF_SIZE];
 extern int MQTT_BROKER_PORT;
 //extern String MQTT_TOPIC;
 extern String clientId;

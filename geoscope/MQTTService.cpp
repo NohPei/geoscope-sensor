@@ -6,8 +6,9 @@
 #include "MQTTService.h"
 #include <ArduinoOTA.h>
 #include "Network.h"
+#include "cli.h"
 
-char* MQTT_BROKER_IP = "192.168.60.100";
+char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
 
 
@@ -89,7 +90,7 @@ void mqttSend() {
 		payload = payloadHeader;
 		for (int i = 0; i < RAW_COL_BUFFER_SIZE; i++) {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
-			if (dataDump) {
+			if (cli.isStreaming()) {
 				Serial.println(rawBuffer[buffer_row][i]);
 			}
 		}

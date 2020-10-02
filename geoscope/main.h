@@ -16,6 +16,8 @@
 #define RAW_ROW_BUFFER_SIZE 2
 #define RAW_COL_BUFFER_SIZE 500
 
+#define CHAR_BUF_SIZE 32
+
 #define DEVICE_IP 152
 
 
@@ -27,6 +29,5 @@ extern int amplifierGain;
 extern bool fullfilledBuffer;
 extern int currentBufferRow;
 extern uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
-bool dataDump = false;
 
 #endif

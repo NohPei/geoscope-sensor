@@ -8,9 +8,11 @@
 #endif
 
 #include "main.h"
-#include <Cmd.h>
+#include <Commander.h>
 
 bool cliInit();
+
+extern Commander cli;
 
 
 #endif
