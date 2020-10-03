@@ -3,8 +3,10 @@
 // 
 
 #include "Watchdog.h"
+#include "cli.h"
 
 void forceReset() {
+	cli.println(F("<< forceReset Triggered! >>"));
 	ESP.wdtDisable();
 	minYield(10);
 	ESP.restart();
