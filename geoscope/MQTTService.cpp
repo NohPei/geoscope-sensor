@@ -75,9 +75,6 @@ void mqttConnect() {
 }
 
 void mqttSend() {
-	mqttclient.loop();
-	minYield(10);
-
 	if (fullfilledBuffer) {
 		int buffer_row = 0;
 		if (currentBufferRow == 0) {
@@ -90,9 +87,6 @@ void mqttSend() {
 		payload = payloadHeader;
 		for (int i = 0; i < RAW_COL_BUFFER_SIZE; i++) {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
-			if (cli.isStreaming()) {
-				Serial.println(rawBuffer[buffer_row][i]);
-			}
 		}
 		payload += "]\",\"gain\":" + String(amplifierGain) + "}";
 
@@ -102,6 +96,9 @@ void mqttSend() {
 
 		mqttclient.publish(MQTT_TOPIC, payload);
 	}
+
+	mqttclient.loop();
+	delay(10);
 }
 
 void mqttOnMessage(String & topic, String & in_payload) {

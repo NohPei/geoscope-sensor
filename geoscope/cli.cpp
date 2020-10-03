@@ -215,7 +215,7 @@ bool mqtt_ip(Commander &cmd) {
 		cmd.rewind();
 		cmd.print(F("Broker IP: "));
 		if (new_mqtt_ip[0]) {
-			cmd.print(new_mqtt_client);
+			cmd.print(new_mqtt_ip);
 			cmd.println(F("(pending)"));
 		}
 		else {
@@ -296,7 +296,7 @@ bool adc_gain(Commander &cmd) {
 	else {
 		cmd.rewind();
 		cmd.print(F("Gain: "));
-		cmd.println(NETMASK);
+		cmd.println(amplifierGain);
 	}
 	return 0;
 

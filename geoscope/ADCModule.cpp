@@ -3,6 +3,7 @@
 // 
 
 #include "ADCModule.h"
+#include "cli.h"
 
 // spi cs pin
 const uint8_t adcSSpin = 15; // ADC slave select pin
@@ -56,8 +57,14 @@ void interuptEnable() {
 void adcPoll() {
 	if (!digitalRead(adcSSpin)) { //if we've enabled the ADC
 		uint16_t rawVal = SPI.transfer16(0); //the ADC doesn't take input, but we have to send something
-		rawBuffer[currentBufferRow][currentBufferPosition++] = rawVal;
 		rawVal &= 0x0FFF; //only the lower 12 bits are valid, so toss the high 4 bits
+		rawBuffer[currentBufferRow][currentBufferPosition++] = rawVal;
+		digitalWrite(adcSSpin,HIGH); //stop the ADC until the next sample
+
+		if (cli.isStreaming()) {
+			cli.println(rawVal,DEC);
+		}
+		
 
 		if (currentBufferPosition == RAW_COL_BUFFER_SIZE) { //check for filled buffers
 			fullfilledBuffer = true;
