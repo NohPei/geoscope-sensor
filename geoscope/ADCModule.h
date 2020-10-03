@@ -12,12 +12,11 @@
 #include "main.h"
 #include <SPI.h>
 
-#define TIMER1_WRITE_TIME 10000
+#define TIMER1_WRITE_TIME 10000 //5MHz/10000 = 500Hz
 
 
 void adcSetup();
-void ICACHE_RAM_ATTR dataRead_isr();
-void inline setDataBits(uint16_t);
+void adcPoll();
 void interuptEnable();
 void interuptDisable();
 void changeAmplifierGain(int);

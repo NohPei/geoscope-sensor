@@ -43,8 +43,8 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	ArduinoOTA.handle();
+	adcPoll();
 	mqttSend();
-	
 
 	if (cli.isStreaming() && cli.getInputPort()->available()) {
 		cli.stopStreaming();

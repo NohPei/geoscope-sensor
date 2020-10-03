@@ -5,7 +5,7 @@
 #include "ADCModule.h"
 
 // spi cs pin
-const int8_t scePin = 15;									// ADC slave select pin
+const uint8_t adcSSpin = 15; // ADC slave select pin
 const int8_t gain_d0 = 5;
 const int8_t gain_d1 = 4;
 const int8_t gain_d2 = 0;
@@ -18,11 +18,7 @@ uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 void adcSetup() {
 	// SPI Setup
 	SPI.begin();
-	SPI.setDataMode(SPI_MODE0);
-	SPI.setBitOrder(MSBFIRST);
-	SPI.setClockDivider(SPI_CLOCK_DIV64);					// 80MHz/64 = 1.25MHz
-	SPI.setHwCs(1);											// set slave select pin to GPIO15
-	setDataBits(0x10);										// set data bit to 16bits
+	pinMode(adcSSpin,OUTPUT); //enable SS pin for manual operation
 	
 	// Gain setup
 	gainLoad();
@@ -31,62 +27,49 @@ void adcSetup() {
 	// TIMER1 ISR Setup
 	timer1_isr_init();
 	interuptEnable();
-
+	digitalWrite(adcSSpin,HIGH); //ensure that SS is disabled (until the interrupt triggers)
 }
 
+//ADC sampling interrupt handler
+void ICACHE_RAM_ATTR adcEnable_isr() {
+	digitalWrite(adcSSpin,LOW); //dropping the SS pin enables the ADC, captures and holds one sample
+}
+
+//disable and reset the sampling
 void interuptDisable() {
 	timer1_detachInterrupt();
 	timer1_disable();
 	fullfilledBuffer = false;
 	currentBufferPosition = 0;
+	SPI.endTransaction();
 }
 
+//enable sampling by interrupt
 void interuptEnable() {
-	timer1_attachInterrupt(dataRead_isr);
+	timer1_attachInterrupt(adcEnable_isr);
 	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);			// 80MHz / 16 = 5MHz
-	//timer1_write(2500);									// 0.2us * 2500 500us -> 2K sample per secound
 	timer1_write(TIMER1_WRITE_TIME);
+	SPI.beginTransaction(SPISettings(0.8e6, MSBFIRST, SPI_MODE0));
+	//enale SPI at 800kHz max rate
 }
 
-void ICACHE_RAM_ATTR dataRead_isr() {
-	uint16_t rawVal;
-	uint16_t tmpVal;
+void adcPoll() {
+	if (!digitalRead(adcSSpin)) { //if we've enabled the ADC
+		uint16_t rawVal = SPI.transfer16(0); //the ADC doesn't take input, but we have to send something
+		rawBuffer[currentBufferRow][currentBufferPosition++] = rawVal;
+		rawVal &= 0x0FFF; //only the lower 12 bits are valid, so toss the high 4 bits
 
-	while (SPI1CMD & SPIBUSY)
-	{
-	}
-	SPI1W0 = 0x00; // send 0x00 to adc
-	SPI1CMD |= SPIBUSY;
-	while (SPI1CMD & SPIBUSY)
-	{
-	}
-
-	tmpVal = SPI1W0 & 0xFF00;
-	tmpVal = tmpVal >> 8;
-	rawVal = SPI1W0 << 8;
-	rawVal = rawVal + tmpVal;
-	rawVal = rawVal >> 1;
-	rawVal = rawVal & 0x0FFF;
-
-	rawBuffer[currentBufferRow][currentBufferPosition++] = rawVal;
-
-	if (currentBufferPosition == RAW_COL_BUFFER_SIZE)
-	{
-		fullfilledBuffer = true;
-		currentBufferPosition = 0;
-		currentBufferRow++;
-		if (currentBufferRow == RAW_ROW_BUFFER_SIZE) {
-			currentBufferRow = 0;
+		if (currentBufferPosition == RAW_COL_BUFFER_SIZE) { //check for filled buffers
+			fullfilledBuffer = true;
+			currentBufferPosition = 0;
+			currentBufferRow++;
+			if (currentBufferRow == RAW_ROW_BUFFER_SIZE) {
+				currentBufferRow = 0;
+			}
 		}
+
 	}
 }
-
-void inline setDataBits(uint16_t bits) {
-	const uint32_t mask = ~((SPIMMOSI << SPILMOSI) | (SPIMMISO << SPILMISO));
-	bits--;
-	SPI1U1 = ((SPI1U1 & mask) | ((bits << SPILMOSI) | (bits << SPILMISO)));
-}
-
 
 void changeAmplifierGain(int val) {
 
