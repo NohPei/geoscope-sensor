@@ -51,15 +51,15 @@ void interuptEnable() {
 	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);			// 80MHz / 16 = 5MHz
 	timer1_write(TIMER1_WRITE_TIME);
 	SPI.beginTransaction(SPISettings(0.8e6, MSBFIRST, SPI_MODE0));
-	//enale SPI at 800kHz max rate
+	//enale SPI at 800kHz max rate (from MCP3201 datasheet)
 }
 
 void adcPoll() {
 	if (!digitalRead(adcSSpin)) { //if we've enabled the ADC
 		uint16_t rawVal = SPI.transfer16(0); //the ADC doesn't take input, but we have to send something
+		rawVal = rawVal >> 1; //16 bits transferred: 1 null, 12 data, 3 junk. Throw away the junk
 		rawVal &= 0x0FFF; //only the lower 12 bits are valid, so toss the high 4 bits
 		rawBuffer[currentBufferRow][currentBufferPosition++] = rawVal;
-		digitalWrite(adcSSpin,HIGH); //stop the ADC until the next sample
 
 		if (cli.isStreaming()) {
 			cli.println(rawVal,DEC);
@@ -74,6 +74,8 @@ void adcPoll() {
 				currentBufferRow = 0;
 			}
 		}
+
+		digitalWrite(adcSSpin, HIGH); //cut the ADC back off
 
 	}
 }
