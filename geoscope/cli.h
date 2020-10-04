@@ -10,7 +10,7 @@
 #include "main.h"
 #include <Commander.h>
 
-bool cliInit();
+bool cliInit(Stream &iostream = Serial);
 
 extern Commander cli;
 

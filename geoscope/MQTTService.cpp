@@ -10,7 +10,7 @@
 
 char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
-
+int MQTT_BROKER_TIMEOUT = 30000; //timeout without reaching the broker before rebooting the sensor
 
 String clientId = "152";
 String 	MQTT_TOPIC,
@@ -20,7 +20,7 @@ String 	MQTT_TOPIC,
 WiFiClient wifiClient;
 MQTTClient mqttclient(MQTT_PACKAGE_SIZE);
 
-int reAttempCounter = 0;
+unsigned long* attemptTimeout = NULL;
 
 int amplifierGain = 100;
 
@@ -35,6 +35,8 @@ void mqttSetup() {
 	mqttclient.onMessage(mqttOnMessage);
 
 	if (!mqttclient.connected()) {
+		if (!attemptTimeout)
+			attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
 		mqttConnect();
 	}
 
@@ -43,6 +45,8 @@ void mqttSetup() {
 	mqttclient.publish("geoscope/reply", payload);
 
 	if (!mqttclient.connected()) {
+		if (!attemptTimeout)
+			attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
 		mqttConnect();
 	}
 	gainLoad();
@@ -52,7 +56,9 @@ void mqttSetup() {
 }
 
 void mqttConnect() {
-	if (reAttempCounter > 5) {
+	if (MQTT_BROKER_TIMEOUT && attemptTimeout && millis() > *attemptTimeout) {
+		//initiates self reset if we're requiring Broker for operation (can be turned off during testing),
+		// 	and there's a set attemptTimeout
 		payload = payloadHeader;
 		payload += "Device Self Reset]\"}";
 		mqttclient.publish("geoscope/reply", payload);
@@ -62,15 +68,15 @@ void mqttConnect() {
 	mqttclient.disconnect();
 	if (mqttclient.connect(("GEOSCOPE-" + clientId).c_str()))
 	{
-		reAttempCounter = 0;
+		delete attemptTimeout;
+		attemptTimeout = NULL;
 		// Subscribe to topic geoscope/config/gain
 		mqttclient.subscribe("geoscope/config/gain");
 		mqttclient.subscribe("geoscope/restart");
 	}
 	else
 	{
-		reAttempCounter++;
-		minYield(1000);
+		minYield(20);
 	}
 }
 
@@ -91,6 +97,8 @@ void mqttSend() {
 		payload += "]\",\"gain\":" + String(amplifierGain) + "}";
 
 		if (!mqttclient.connected()) {
+			if (!attemptTimeout)
+				attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
 			mqttConnect();
 		}
 

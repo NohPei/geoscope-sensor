@@ -38,6 +38,8 @@ void setup() {
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
 	Serial.println("> Boot Complete");
+
+	cli.printCommandPrompt();
 }
 
 // the loop function runs over and over again until power down or reset

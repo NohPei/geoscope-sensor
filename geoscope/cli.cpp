@@ -5,14 +5,33 @@
 #include "MQTTService.h"
 #include "main.h"
 
+// #define TRUE_EQUIV_COUNT 5
+// const String TRUE_EQUIV[] = { //strings that will be understood as "true" when setting variables
+// 	"yes",
+// 	"1",
+// 	"true",
+// 	"enable",
+// 	"on"
+// };
+//
+// #define FALSE_EQUIV_COUNT 5
+// const String FALSE_EQUIV[] = { //strings that will be understood as "false" when setting variables
+// 	"no",
+// 	"0",
+// 	"false",
+// 	"disable",
+// 	"off"
+//
+// };
+
+//Network Submenu
+
 char 	new_ssid[CHAR_BUF_SIZE],
 	new_key[CHAR_BUF_SIZE],
 	new_gateway[CHAR_BUF_SIZE],
 	new_dns[CHAR_BUF_SIZE],
 	new_ip[CHAR_BUF_SIZE],
 	new_mask[CHAR_BUF_SIZE];
-
-//Network Submenu
 
 bool net_revert(Commander &cmd) {
 	memset(new_ip, 0, CHAR_BUF_SIZE);
@@ -129,7 +148,7 @@ bool net_ssid(Commander &cmd) {
 		cmd.rewind();
 		cmd.print(F("SSID: "));
 		if (new_ssid[0]) {
-			cmd.print(new_mask);
+			cmd.println(new_mask);
 			cmd.println(F("(pending)"));
 		}
 		else {
@@ -149,7 +168,7 @@ bool net_psk(Commander &cmd) {
 		cmd.rewind();
 		cmd.print(F("Network Key: "));
 		if (new_key[0]) {
-			cmd.print(new_key);
+			cmd.println(new_key);
 			cmd.println(F("(pending)"));
 		}
 		else {
@@ -183,11 +202,13 @@ const uint16_t netCmdCount = sizeof(netCommands);
 char new_mqtt_ip[CHAR_BUF_SIZE];
 int new_mqtt_port;
 String new_mqtt_client;
+int new_mqtt_timeout;
 
 bool mqtt_revert(Commander &cmd) {
 	memset(new_mqtt_ip, 0, CHAR_BUF_SIZE);
 	new_mqtt_port = 0;
 	new_mqtt_client.clear();
+	new_mqtt_timeout = -1;
 	return 0;
 }
 
@@ -200,6 +221,9 @@ bool mqtt_commit(Commander &cmd) {
 	}
 	if (!new_mqtt_client.isEmpty()) {
 		clientId = new_mqtt_client;
+	}
+	if (new_mqtt_timeout >= 0) {
+		MQTT_BROKER_TIMEOUT = new_mqtt_timeout;
 	}
 	mqttSetup();
 	return mqtt_revert(cmd);
@@ -215,7 +239,7 @@ bool mqtt_ip(Commander &cmd) {
 		cmd.rewind();
 		cmd.print(F("Broker IP: "));
 		if (new_mqtt_ip[0]) {
-			cmd.print(new_mqtt_ip);
+			cmd.println(new_mqtt_ip);
 			cmd.println(F("(pending)"));
 		}
 		else {
@@ -237,7 +261,7 @@ bool mqtt_port(Commander &cmd) {
 		cmd.rewind();
 		cmd.print(F("Broker Port: "));
 		if (new_mqtt_port) {
-			cmd.print(new_mqtt_port);
+			cmd.println(new_mqtt_port);
 			cmd.println(F("(pending)"));
 		}
 		else {
@@ -261,11 +285,36 @@ bool mqtt_client(Commander &cmd) {
 		cmd.rewind();
 		cmd.print(F("MQTT Client ID: "));
 		if (!new_mqtt_client.isEmpty()) {
-			cmd.print(new_mqtt_client);
+			cmd.println(new_mqtt_client);
 			cmd.println(F("(pending)"));
 		}
 		else {
 			cmd.println(clientId);
+		}
+	}
+	return 0;
+}
+
+bool mqtt_tmout(Commander &cmd) {
+	int payload;
+	if (cmd.getInt(payload) && payload >= 0) {
+		new_mqtt_timeout = payload;
+	}
+	else {
+		cmd.rewind();
+		cmd.print(F("MQTT Broker Timeout (ms): "));
+		if (new_mqtt_timeout >= 0) {
+			if (new_mqtt_timeout)
+				cmd.println(new_mqtt_timeout);
+			else
+				cmd.println(F("disabled"));
+			cmd.println(F("(pending)"));
+		}
+		else {
+			if (MQTT_BROKER_TIMEOUT)
+				cmd.println(MQTT_BROKER_TIMEOUT);
+			else
+				cmd.println(F("disabled"));
 		}
 	}
 	return 0;
@@ -276,6 +325,9 @@ const commandList_t mqttCommands[] = {
 	{"ip", mqtt_ip, "Broker/Server IP Address"},
 	{"port", mqtt_port, "Broker/Server Port (0 will use default)"},
 	{"id", mqtt_client, "Device Client ID (0 will use default)"},
+	{"timeout", mqtt_tmout, "Timeout for Device Restart without Broker, ms (0 to disable)"},
+	{"require", mqtt_tmout, "Alias for `timeout`"},
+	{"tm", mqtt_tmout, "Alias for `timeout`"},
 	{"client", mqtt_client, "Alias for `id`"},
 	{"commit", mqtt_commit, "Apply pending changes to MQTT Config"},
 	{"revert", mqtt_revert, "Discard pending changes to MQTT Config"},
@@ -359,7 +411,7 @@ const commandList_t mainCommands[] = {
 const uint16_t mainCmdCount = sizeof(mainCommands);
 
 bool sub_exit(Commander &cmd) {
-	cmd.transferBack(mainCommands, mainCmdCount, "Cmd");
+	cmd.transferBack(mainCommands, mainCmdCount, "CMD");
 	return 0;
 }
 
@@ -367,9 +419,12 @@ Commander cli;
 
 //@method: cliInit
 //@desc: configures the CLI interface using the standard Serial interface
-bool cliInit() {
+bool cliInit(Stream &iostream) {
 	//configure using Serial, start with main command set
-	cli.begin(&Serial, mainCommands, mainCmdCount);
+	cli.begin(&iostream, mainCommands, mainCmdCount);
+	cli.echo(true);
+	cli.commandPrompt(true);
+	cli.printCommanderVersion();
 
 	net_revert(cli); //clear pending network configs at start
 	mqtt_revert(cli); //clear pending MQTT configs, too

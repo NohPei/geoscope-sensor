@@ -22,6 +22,7 @@ extern char MQTT_BROKER_IP[CHAR_BUF_SIZE];
 extern int MQTT_BROKER_PORT;
 //extern String MQTT_TOPIC;
 extern String clientId;
+extern int MQTT_BROKER_TIMEOUT;
 
 void mqttSetup();
 void mqttConnect();
