@@ -11,6 +11,7 @@ Author:	Sripong
 #include "Network.h"
 #include "cli.h"
 #include <ArduinoOTA.h>
+#include <ESPWebDAV.h>
 #include "main.h"
 
 #define TIMEZONE "America/New_York" //Eastern Standard/Daylight Time
@@ -40,23 +41,29 @@ void ota_done() {
 	}
 }
 
+WiFiServer tcp(80);
+ESPWebDAV dav;
+
 
 void setup() {
 	Serial.begin(115200);
 	Serial.println(F( "\n> Starting Geoscope Boot" ));
-	cliInit();
-	Serial.println(F( "> CLI Ready" ));
+
 	LittleFS.begin();
 	Serial.println(F( "> FS Mounted" ));
+
 	loadWifiConfig();
 	wifiSetup();
 	yield();
 	Serial.println(F( "> WiFi Connected" ));
+
 	configTime(TIMEZONE, NTP_SERVER);
 	Serial.println(F( "> Time Configured" ));
+
 	mqttLoad(); //attempt to load configuration file
 	mqttSetup();
 	Serial.println(F( "> MQTT Configured" ));
+
 	adcSetup();
 	Serial.println(F( "> ADC Configured" ));
 
@@ -65,6 +72,13 @@ void setup() {
 	ArduinoOTA.onStart(ota_startup);
 	ArduinoOTA.onEnd(ota_done);
 	Serial.println(F( "> OTA Ready" ));
+
+	tcp.begin();
+	dav.begin(&tcp, &LittleFS);
+	Serial.println(F( "> Remote FS Access Ready" ));
+
+	cliInit();
+	Serial.println(F( "> CLI Ready" ));
 
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
@@ -78,6 +92,7 @@ void loop() {
 	ArduinoOTA.handle();
 	adcPoll();
 	mqttSend();
+	dav.handleClient();
 
 	if (cli.isStreaming() && cli.getInputPort()->available()) {
 		cli.stopStreaming();
