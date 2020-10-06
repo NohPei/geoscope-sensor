@@ -44,6 +44,8 @@ void ota_done() {
 void setup() {
 	Serial.begin(115200);
 	Serial.println(F( "\n> Starting Geoscope Boot" ));
+	cliInit();
+	Serial.println(F( "> CLI Ready" ));
 	LittleFS.begin();
 	Serial.println(F( "> FS Mounted" ));
 	loadWifiConfig();
@@ -57,8 +59,6 @@ void setup() {
 	Serial.println(F( "> MQTT Configured" ));
 	adcSetup();
 	Serial.println(F( "> ADC Configured" ));
-	cliInit();
-	Serial.println(F( "> CLI Ready" ));
 
 	// OTA Setup
 	ArduinoOTA.begin();

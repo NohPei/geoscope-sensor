@@ -134,14 +134,16 @@ void changeAmplifierGain(int val) {
 }
 
 void gainLoad() {
-	File storage = LittleFS.open("config/gain", "r");
-	if (storage.isFile())
+	File storage = LittleFS.open("/config/gain", "r");
+	if (!storage)
+		amplifierGain = 0;
+	else
 		amplifierGain = storage.readString().toInt();
 	storage.close();
 }
 
 void gainSave() {
-	File storage = LittleFS.open("config/gain", "w");
-	storage.print(amplifierGain, DEC);
+	File storage = LittleFS.open("/config/gain", "w");
+	storage.println(amplifierGain, DEC);
 	storage.close();
 }

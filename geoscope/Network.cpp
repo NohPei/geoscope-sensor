@@ -19,72 +19,86 @@ void wifiSetup() {
 	WiFi.softAPdisconnect(true);
 	WiFi.disconnect();
 	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK);
-		//use gateway as DNS by default
 	WiFi.begin(SSID, PASSWORD);
-	while (WiFi.status() != WL_CONNECTED) {
+	// while (WiFi.status() != WL_CONNECTED) {
 		yield();
-	}
+	// }
 }
 
 void loadWifiConfig() {
-	File storage = LittleFS.open("config/net", "r");
-	if (!storage.isFile()) { //if the config file doesn't exist
-		initWifiConfig(); //load the hard-coded config
+	if (!(GEOSCOPE_IP.isSet() && GATEWAY_IP.isSet() && NETMASK.isSet() && strlen(SSID) > 0)) {
+		//if there is no current config
+		initWifiConfig(); //start with the hard-coded config
 	}
-	IPAddress DNS;
-	while (storage.available()) {
-		String line = storage.readStringUntil('\n');
-		line.trim(); //cut off any trailing whitespace, hopefully including extraneous newlines
-		const char* arg = line.substring(line.lastIndexOf(' ')+1).c_str();
-		switch (line[0]) {
-			case 's': //ssid
-				strncpy(SSID, arg, CHAR_BUF_SIZE);
-				SSID[CHAR_BUF_SIZE-1] = 0;
-				break;
-			case 'k': //key
-				strncpy(PASSWORD, arg, CHAR_BUF_SIZE);
-				PASSWORD[CHAR_BUF_SIZE-1] = 0;
-				break;
-			case 'i': //IP
-				GEOSCOPE_IP.fromString(arg);
-				break;
-			case 'g': //Gateway
-				GATEWAY_IP.fromString(arg);
-				break;
-			case 'm': //subnet Mask
-				NETMASK.fromString(arg);
-				break;
-			case 'd': //DNS
-				DNS.fromString(arg);
-				break;
-			default:
-				//ignore. This line is invalid
-				break;
-
+	Dir storage = LittleFS.openDir("/config/net");
+	IPAddress newDNS;
+	while (storage.next()) {
+		if (storage.isFile()) {
+			File f = storage.openFile("r");
+			if (f) {
+				String temp = f.readString();
+				temp.trim();
+				switch (f.name()[0]) {
+					case 's': //SSID
+						strncpy(SSID, temp.c_str(), CHAR_BUF_SIZE);
+						SSID[CHAR_BUF_SIZE-1] = 0;
+						break;
+					case 'k': //network Key
+						strncpy(PASSWORD, temp.c_str(), CHAR_BUF_SIZE);
+						PASSWORD[CHAR_BUF_SIZE-1] = 0;
+						break;
+					case 'i': //IP
+						GEOSCOPE_IP.fromString(temp);
+						break;
+					case 'g': //Gateway
+						GATEWAY_IP.fromString(temp);
+						break;
+					case 'm': //subnet Mask
+						NETMASK.fromString(temp);
+						break;
+					case 'd': //DNS
+						newDNS.fromString(temp);
+						break;
+					default:
+						//this file doesn't contain a config we use
+						break;
+				}
+			}
 		}
 	}
-	if (DNS.isSet()) { //configure DNS now if we got one
-		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, GATEWAY_IP);
+
+	if (newDNS.isSet()) { //if we loaded a DNS config
+		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, newDNS); //start using it
 	}
-	storage.close();
 }
 
 void saveWifiConfig() {
-	File storage = LittleFS.open("config/net", "w");
-	storage.print("s ");
-	storage.println(SSID);
-	storage.print("k ");
-	storage.println(WiFi.psk());
-	storage.print("i ");
-	storage.println(GEOSCOPE_IP);
-	storage.print("g ");
-	storage.println(GATEWAY_IP);
-	storage.print("m ");
-	storage.println(NETMASK);
-	storage.print("d ");
-	storage.println(WiFi.dnsIP());
 
+	File storage = LittleFS.open("/config/net/ssid", "w");
+	storage.println(SSID);
 	storage.close();
+
+	storage = LittleFS.open("/config/net/key","w");
+	storage.println(PASSWORD);
+	storage.close();
+	
+	storage = LittleFS.open("/config/net/ip", "w");
+	storage.println(GEOSCOPE_IP);
+	storage.close();
+
+	storage = LittleFS.open("/config/net/gateway","w");
+	storage.println(GATEWAY_IP);
+	storage.close();
+	
+	storage = LittleFS.open("/config/net/mask","w");
+	storage.println(NETMASK);
+	storage.close();
+	
+	if (WiFi.dnsIP().isSet()) {
+		storage = LittleFS.open("/config/net/dns","w");
+		storage.println(WiFi.dnsIP());
+		storage.close();
+	}
 }
 
 void initWifiConfig() {

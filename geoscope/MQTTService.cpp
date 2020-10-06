@@ -139,42 +139,53 @@ void mqttOnMessage(String & topic, String & in_payload) {
 }
 
 void mqttLoad() {
-	File storage = LittleFS.open("config/mqtt", "r");
-	while (storage.available()) {
-		String line = storage.readStringUntil('\n');
-		line.trim(); //cut off any trailing whitespace, hopefully including extraneous newlines
-		String arg = line.substring(line.lastIndexOf(' ')+1);
-		switch (line[0]) {
-			case 'i': //IP (for Broker)
-				strncpy(MQTT_BROKER_IP, arg.c_str(), CHAR_BUF_SIZE);
-				MQTT_BROKER_IP[CHAR_BUF_SIZE-1] = 0;
-				break;
-			case 'p': //Port (for Broker)
-				MQTT_BROKER_PORT = arg.toInt();
-				break;
-			case 't': //Timeout
-				MQTT_BROKER_TIMEOUT = arg.toInt();
-				break;
-			case 'c': //Client ID
-				clientId = arg;
-			default:
-				//ignore. This line is invalid
-				break;
+	Dir storage = LittleFS.openDir("/config/mqtt");
+	while (storage.next()) {
+		if (storage.isFile()) {
+			File f = storage.openFile("r");
+			if (f) {
+				String temp;
+				switch (f.name()[0]) {
+					case 'i': //IP
+						temp = f.readString();
+						temp.trim();
+						strncpy(MQTT_BROKER_IP, temp.c_str(), CHAR_BUF_SIZE);
+						MQTT_BROKER_IP[CHAR_BUF_SIZE-1] = 0;
+						break;
+					case 'p': //port
+						MQTT_BROKER_PORT = f.parseInt();
+						break;
+					case 't': //Timeout
+						MQTT_BROKER_TIMEOUT = f.parseInt();
+						break;
+					case 'c': //ClientID
+						temp = f.readString();
+						temp.trim();
+						clientId = temp;
+						break;
+					default:
+						//this file doesn't contain a config we use
+						break;
+				}
+			}
 		}
 	}
-	storage.close();
 }
 
 void mqttSave() {
-	File storage = LittleFS.open("config/mqtt", "w");
-	storage.print("i ");
+	File storage = LittleFS.open("/config/mqtt/ip", "w");
 	storage.println(MQTT_BROKER_IP);
-	storage.print("p ");
-	storage.println(MQTT_BROKER_PORT);
-	storage.print("t ");
-	storage.println(MQTT_BROKER_TIMEOUT);
-	storage.print("c ");
-	storage.println(clientId);
+	storage.close();
 
+	storage = LittleFS.open("/config/mqtt/port","w");
+	storage.println(MQTT_BROKER_PORT);
+	storage.close();
+	
+	storage = LittleFS.open("/config/mqtt/timeout","w");
+	storage.println(MQTT_BROKER_TIMEOUT);
+	storage.close();
+	
+	storage = LittleFS.open("/config/mqtt/clientid","w");
+	storage.println(clientId);
 	storage.close();
 }
