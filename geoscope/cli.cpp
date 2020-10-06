@@ -370,6 +370,51 @@ const commandList_t adcCommands[] = {
 const uint16_t adcCmdCount = sizeof(adcCommands);
 
 
+// File System Commands
+
+bool fs_cat(Commander &cmd) {
+	String payload;
+	if (cmd.getString(payload)) {
+		File f = LittleFS.open(payload,"r");
+		if (f.isFile()) {
+			cmd.println(f);
+		}
+		else {
+			cmd.print(F("Cannot find file \""));
+			cmd.print(payload);
+			cmd.println("\"");
+		}
+	}
+	return 0;
+}
+
+
+bool fs_format(Commander &cmd) {
+	cmd.println(F("<<Formatting will erase all FS data!>>"));
+	String payload;
+	if (cmd.getString(payload)) {
+		if (payload.equalsIgnoreCase(F("OK"))) {
+			cmd.println("> Formatting FS...");
+			return !LittleFS.format();
+			//return 0 on success, 1 otherwise
+		}
+	}
+	cmd.print(F( "To continue, resend as `fs format ok`" ));
+	return 0;
+}
+
+
+
+const commandList_t fsCommands[] = {
+	{"print", fs_cat, "Print file contents to terminal"},
+	{"cat", fs_cat, "Alias for `print`"},
+	{"format", fs_format, "reformat flash filesystem"},
+	{"exit", sub_exit, "Return to main prompt"}
+};
+
+const uint16_t fsCmdCount = sizeof(fsCommands);
+
+
 //Main menu and return functions
 
 bool cli_reboot(Commander &cmd) {
@@ -405,7 +450,9 @@ const commandList_t mainCommands[] = {
 	{"net", cli_net, "Configure the network connection (changes made are applied by `net commit`)"},
 	{"mqtt", cli_mqtt, "Configure broker connection and logging (changes made are applied by `mqtt commit`)"},
 	{"adc", cli_adc, "Configure gain and adc debug mode"},
-	{"reboot", cli_reboot, "Restart this sensor"}
+	{"reboot", cli_reboot, "Restart this sensor"},
+	{"backup", backup, "Backup all configrations to filesystem"},
+	{"restore", restore, "Restore all configiurations from filesystem"}
 };
 
 const uint16_t mainCmdCount = sizeof(mainCommands);
@@ -413,6 +460,19 @@ const uint16_t mainCmdCount = sizeof(mainCommands);
 bool sub_exit(Commander &cmd) {
 	cmd.transferBack(mainCommands, mainCmdCount, "CMD");
 	return 0;
+}
+
+//backs up all configurations to FS
+bool backup(Commander &cmd) {
+	gainSave();
+	//TODO: all other configs
+}
+
+//restores all configurations from FS
+bool restore(Commander &cmd) {
+	gainLoad();
+	changeAmplifierGain(amplifierGain);
+	//TODO: all other configs
 }
 
 Commander cli;

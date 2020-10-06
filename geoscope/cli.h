@@ -14,5 +14,8 @@ bool cliInit(Stream &iostream = Serial);
 
 extern Commander cli;
 
+bool backup(Commander &cmd = cli);
+bool restore(Commander &cmd = cli);
+
 
 #endif

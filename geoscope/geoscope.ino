@@ -11,7 +11,6 @@ Author:	Sripong
 #include "Network.h"
 #include "cli.h"
 #include <ArduinoOTA.h>
-#include <time.h>
 #include "main.h"
 
 #define TIMEZONE "America/New_York" //Eastern Standard/Daylight Time
@@ -19,9 +18,34 @@ Author:	Sripong
 // if better guarantees are needed, try "time.nist.gov"
 
 
+static bool OTA_FS_UPDATE = false;
+
+void ota_startup() {
+	OTA_FS_UPDATE = ArduinoOTA.getCommand() == U_FS;
+	if (OTA_FS_UPDATE) {
+		Serial.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
+		LittleFS.end();
+	}
+	else {
+		backup(); //save configurations to FS
+		Serial.println(F("> Updating Firmware over OTA"));
+	}
+}
+
+void ota_done() {
+	if (OTA_FS_UPDATE) {
+		LittleFS.begin();
+		backup(); //backup configuration to newly re-written filesystem
+		OTA_FS_UPDATE = false; //unset the flag
+	}
+}
+
+
 void setup() {
 	Serial.begin(115200);
 	Serial.println(F( "\n> Starting Geoscope Boot" ));
+	LittleFS.begin();
+	Serial.println(F( "> FS Mounted" ));
 	initWifiConfig();
 	wifiSetup();
 	yield();
@@ -37,6 +61,8 @@ void setup() {
 
 	// OTA Setup
 	ArduinoOTA.begin();
+	ArduinoOTA.onStart(ota_startup);
+	ArduinoOTA.onEnd(ota_done);
 	Serial.println(F( "> OTA Ready" ));
 
 	ESP.wdtDisable();

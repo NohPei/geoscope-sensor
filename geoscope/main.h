@@ -10,7 +10,7 @@
 #endif
 
 #include <string.h>
-#include <EEPROM.h>
+#include <LittleFS.h>
 #include <ESP8266WiFi.h>
 
 #define RAW_ROW_BUFFER_SIZE 2
