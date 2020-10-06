@@ -4,6 +4,8 @@
 
 #include "Network.h"
 #include "Watchdog.h"
+#include "cli.h"
+
 
 char SSID[CHAR_BUF_SIZE], PASSWORD[CHAR_BUF_SIZE];
 IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP;
@@ -18,68 +20,110 @@ void wifiSetup() {
 	WiFi.softAPdisconnect(true);
 	WiFi.disconnect();
 	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK);
-//	Serial.println(SSID);
 	WiFi.begin(SSID, PASSWORD);
-	while (WiFi.status() != WL_CONNECTED) {
-		minYield(500);
+	// while (WiFi.status() != WL_CONNECTED) {
+		yield();
+	// }
+}
+
+void loadWifiConfig() {
+	if (!(GEOSCOPE_IP.isSet() && GATEWAY_IP.isSet() && NETMASK.isSet() && strlen(SSID) > 0)) {
+		//if there is no current config
+		initWifiConfig(); //start with the hard-coded config
+	}
+	Dir storage = LittleFS.openDir("/config/net");
+	IPAddress newDNS;
+	while (storage.next()) {
+		if (storage.isFile()) {
+			File f = storage.openFile("r");
+			if (f) {
+				String temp = f.readString();
+				temp.trim();
+				switch (f.name()[0]) {
+					case 's': //SSID
+						strncpy(SSID, temp.c_str(), CHAR_BUF_SIZE);
+						SSID[CHAR_BUF_SIZE-1] = 0;
+						break;
+					case 'k': //network Key
+						strncpy(PASSWORD, temp.c_str(), CHAR_BUF_SIZE);
+						PASSWORD[CHAR_BUF_SIZE-1] = 0;
+						break;
+					case 'i': //IP
+						GEOSCOPE_IP.fromString(temp);
+						break;
+					case 'g': //Gateway
+						GATEWAY_IP.fromString(temp);
+						break;
+					case 'm': //subnet Mask
+						NETMASK.fromString(temp);
+						break;
+					case 'd': //DNS
+						newDNS.fromString(temp);
+						break;
+					default:
+						//this file doesn't contain a config we use
+						break;
+				}
+			}
+		}
+	}
+
+	if (newDNS.isSet()) { //if we loaded a DNS config
+		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, newDNS); //start using it
 	}
 }
 
-//void loadWifiConfig() {
-//	uint16_t addressStart = 0;
-//	EEPROM.begin(512);
-//
-//	EEPROM.get(addressStart, SSID);
-//	addressStart += sizeof(SSID);
-//	EEPROM.get(addressStart, PASSWORD);
-//	addressStart += sizeof(PASSWORD);
-//	EEPROM.get(addressStart, GEOSCOPE_IP);
-//	addressStart += sizeof(GEOSCOPE_IP);
-//	EEPROM.get(addressStart, GATEWAY_IP);
-//	addressStart += sizeof(GATEWAY_IP);
-//	EEPROM.get(addressStart, NETMASK);
-//	EEPROM.end();
-//	showWifiConfig();
-//}
-//
-//void saveWifiConfig() {
-//	uint16_t addressStart = 0;
-//	EEPROM.begin(512);
-//
-//	EEPROM.put(addressStart, SSID);
-//	addressStart += sizeof(SSID);
-//	EEPROM.put(addressStart, PASSWORD);
-//	addressStart += sizeof(PASSWORD);
-//	EEPROM.put(addressStart, GEOSCOPE_IP);
-//	addressStart += sizeof(GEOSCOPE_IP);
-//	EEPROM.put(addressStart, GATEWAY_IP);
-//	addressStart += sizeof(GATEWAY_IP);
-//	EEPROM.put(addressStart, NETMASK);
-//	EEPROM.commit();
-//	EEPROM.end();
-//}
+void saveWifiConfig() {
+
+	File storage = LittleFS.open("/config/net/ssid", "w");
+	storage.println(SSID);
+	storage.close();
+
+	storage = LittleFS.open("/config/net/key","w");
+	storage.println(PASSWORD);
+	storage.close();
+	
+	storage = LittleFS.open("/config/net/ip", "w");
+	storage.println(GEOSCOPE_IP);
+	storage.close();
+
+	storage = LittleFS.open("/config/net/gateway","w");
+	storage.println(GATEWAY_IP);
+	storage.close();
+	
+	storage = LittleFS.open("/config/net/mask","w");
+	storage.println(NETMASK);
+	storage.close();
+	
+	if (WiFi.dnsIP().isSet()) {
+		storage = LittleFS.open("/config/net/dns","w");
+		storage.println(WiFi.dnsIP());
+		storage.close();
+	}
+}
 
 void initWifiConfig() {
-	strcpy(SSID, "The Promised LAN");
-	strcpy(PASSWORD, "GoBucks!");
+	strncpy_P(SSID, PSTR("The Promised LAN"), CHAR_BUF_SIZE);
+	strncpy_P(PASSWORD, PSTR("GoBucks!"), CHAR_BUF_SIZE);
 	GEOSCOPE_IP = IPAddress(10,147,20, DEVICE_IP);
 	GATEWAY_IP = IPAddress(10, 147, 20, 1);
 	NETMASK = IPAddress(255, 255, 255, 0);
-	//showWifiConfig();
-
-	//saveWifiConfig();
+	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, GATEWAY_IP);
+		//set Gateway as DNS by default
 }
 
-//void showWifiConfig() {
-//	Serial.println("## Wifi Configuration.");
-//	Serial.print("> SSID: ");
-//	Serial.println(SSID);
-//	Serial.print("> PASSWORD: ");
-//	Serial.println(PASSWORD);
-//	Serial.print("> IP: ");
-//	Serial.println(GEOSCOPE_IP.toString());
-//	Serial.print("> GATEWAY: ");
-//	Serial.println(GATEWAY_IP.toString());
-//	Serial.print("> NETMASK: ");
-//	Serial.println(NETMASK.toString());
-//}
+void showWifiConfig() {
+	cli.println("## Active Wifi Configuration.");
+	cli.print("SSID: ");
+	cli.println(WiFi.SSID());
+	cli.print("Key: ");
+	cli.println(WiFi.psk());
+	cli.print("IP: ");
+	cli.println(WiFi.localIP());
+	cli.print("Default Gateway: ");
+	cli.println(WiFi.gatewayIP());
+	cli.print("Subnet Mask: ");
+	cli.println(WiFi.subnetMask());
+	cli.print("Primary DNS: ");
+	cli.println(WiFi.dnsIP());
+}

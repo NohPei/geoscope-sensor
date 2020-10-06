@@ -178,6 +178,22 @@ bool net_psk(Commander &cmd) {
 	return 0;
 }
 
+bool inline net_save(Commander &cmd) {
+	saveWifiConfig();
+	return 0;
+}
+
+bool inline net_load(Commander &cmd) {
+	loadWifiConfig();
+	wifiSetup();
+	return 0;
+}
+
+bool inline net_dump(Commander &cmd) {
+	showWifiConfig();
+	return 0;
+}
+
 bool sub_exit(Commander &cmd);
 
 
@@ -191,6 +207,9 @@ const commandList_t netCommands[] = {
 	{"key", net_psk, "Alias for `psk`"},
 	{"commit", net_commit, "Apply pending changes to Network Config"},
 	{"revert", net_revert, "Discard pending changes to Network Config"},
+	{"save", net_save, "Save configuration to Filesystem"},
+	{"load", net_load, "Load configuration from Filesystem"},
+	{"dump", net_dump, "Dump active configuration to Terminal"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
@@ -320,6 +339,17 @@ bool mqtt_tmout(Commander &cmd) {
 	return 0;
 }
 
+bool inline mqtt_save(Commander &cmd) {
+	mqttSave();
+	return 0;
+}
+
+bool inline mqtt_load(Commander &cmd) {
+	mqttLoad();
+	mqttSetup();
+	return 0;
+}
+
 
 const commandList_t mqttCommands[] = {
 	{"ip", mqtt_ip, "Broker/Server IP Address"},
@@ -331,6 +361,8 @@ const commandList_t mqttCommands[] = {
 	{"client", mqtt_client, "Alias for `id`"},
 	{"commit", mqtt_commit, "Apply pending changes to MQTT Config"},
 	{"revert", mqtt_revert, "Discard pending changes to MQTT Config"},
+	{"save", mqtt_save, "Save configuration to Filesystem"},
+	{"load", mqtt_load, "Load configuration from Filesystem"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
@@ -355,7 +387,7 @@ bool adc_gain(Commander &cmd) {
 }
 
 bool adc_dump(Commander &cmd) {
-	Serial.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
+	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
 	minYield(2000); //wait a couple seconds for the user to read the info
 	cmd.startStreaming();
 	return 0;
@@ -368,6 +400,66 @@ const commandList_t adcCommands[] = {
 };
 
 const uint16_t adcCmdCount = sizeof(adcCommands);
+
+
+// File System Commands
+
+bool fs_cat(Commander &cmd) {
+	String payload;
+	if (cmd.getString(payload)) {
+		File f = LittleFS.open(payload,"r");
+		if (!f) {
+			cmd.print(F("Cannot find file \""));
+			cmd.print(payload);
+			cmd.println("\"");
+		}
+		else {
+			cmd.println(f.readString());
+		}
+	}
+	return 0;
+}
+
+
+bool fs_format(Commander &cmd) {
+	cmd.println(F("<<Formatting will erase all FS data!>>"));
+	String payload;
+	if (cmd.getString(payload)) {
+		if (payload.equalsIgnoreCase(F("ok"))) {
+			cmd.println("> Formatting FS...");
+			return !LittleFS.format();
+			//return 0 on success, 1 otherwise
+		}
+	}
+	cmd.println(F( "To continue, resend as `fs format ok`" ));
+	return 0;
+}
+
+bool fs_ls(Commander &cmd) {
+	String path;
+	if (!cmd.getString(path)) {
+		path = "/";
+	}
+	Dir d = LittleFS.openDir(path);
+	while (d.next()) {
+		cmd.println(d.fileName());
+	}
+	return 0;
+}
+
+
+
+const commandList_t fsCommands[] = {
+	{"print", fs_cat, "Print file contents to terminal"},
+	{"cat", fs_cat, "Alias for `print`"},
+	{"ls", fs_ls, "List directory contents"},
+	{"format", fs_format, "reformat flash filesystem"},
+	{"backup", backup, "Backup all configrations to filesystem"},
+	{"restore", restore, "Restore all configiurations from filesystem"},
+	{"exit", sub_exit, "Return to main prompt"}
+};
+
+const uint16_t fsCmdCount = sizeof(fsCommands);
 
 
 //Main menu and return functions
@@ -408,11 +500,21 @@ bool cli_swap(Commander &cmd) {
 	cmd.attachOutputPort(oldAlt);
 }
 
+bool cli_fs(Commander &cmd) {
+	if (cmd.transferTo(fsCommands, fsCmdCount, "fs")) {
+		//exit immediately if a command was found
+		sub_exit(cmd);
+	}
+	return 0;
+}
+
+
 const commandList_t mainCommands[] = {
 	{"net", cli_net, "Configure the network connection (changes made are applied by `net commit`)"},
 	{"mqtt", cli_mqtt, "Configure broker connection and logging (changes made are applied by `mqtt commit`)"},
 	{"adc", cli_adc, "Configure gain and adc debug mode"},
 	{"swap", cli_swap, "Switch console input (between local Serial and Telnet)"},
+	{"fs", cli_fs, "Filesystem operations"},
 	{"reboot", cli_reboot, "Restart this sensor"}
 };
 
@@ -420,6 +522,29 @@ const uint16_t mainCmdCount = sizeof(mainCommands);
 
 bool sub_exit(Commander &cmd) {
 	cmd.transferBack(mainCommands, mainCmdCount, "CMD");
+	return 0;
+}
+
+//backs up all configurations to FS
+bool backup(Commander &cmd) {
+	//ADCModule
+	gainSave();
+	//Network
+	net_save(cmd);
+	//MQTTService
+	mqtt_save(cmd);
+	return 0;
+}
+
+//restores all configurations from FS
+bool restore(Commander &cmd) {
+	//ADCModule
+	gainLoad();
+	changeAmplifierGain(amplifierGain);
+	//Network
+	net_load(cmd);
+	//MQTTService
+	mqtt_load(cmd);
 	return 0;
 }
 

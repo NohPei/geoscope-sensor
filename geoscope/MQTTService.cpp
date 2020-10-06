@@ -138,42 +138,54 @@ void mqttOnMessage(String & topic, String & in_payload) {
 	}
 }
 
-//void mqttInit() {
-//}
+void mqttLoad() {
+	Dir storage = LittleFS.openDir("/config/mqtt");
+	while (storage.next()) {
+		if (storage.isFile()) {
+			File f = storage.openFile("r");
+			if (f) {
+				String temp;
+				switch (f.name()[0]) {
+					case 'i': //IP
+						temp = f.readString();
+						temp.trim();
+						strncpy(MQTT_BROKER_IP, temp.c_str(), CHAR_BUF_SIZE);
+						MQTT_BROKER_IP[CHAR_BUF_SIZE-1] = 0;
+						break;
+					case 'p': //port
+						MQTT_BROKER_PORT = f.parseInt();
+						break;
+					case 't': //Timeout
+						MQTT_BROKER_TIMEOUT = f.parseInt();
+						break;
+					case 'c': //ClientID
+						temp = f.readString();
+						temp.trim();
+						clientId = temp;
+						break;
+					default:
+						//this file doesn't contain a config we use
+						break;
+				}
+			}
+		}
+	}
+}
 
-//void mqttLoad() {
-//	Serial.println("======================================================================");
-//	Serial.println("## Load MQTT Configuration to EEPROM.");
-//	uint16_t addressStart = 512;
-//	EEPROM.begin(1024);
-//
-//	Serial.println("> GET MQTT BROKER IP");
-//	EEPROM.get(addressStart, MQTT_BROKER_IP);
-//	addressStart += sizeof(MQTT_BROKER_IP);
-//	Serial.println("> GET MQTT BROKER PORT");
-//	EEPROM.get(addressStart, MQTT_BROKER_PORT);
-//	Serial.println("## MQTT Configuration.");
-//	Serial.print("> BROKER IP: ");
-//	Serial.println(MQTT_BROKER_IP);
-//	Serial.print("> BROKER PORT: ");
-//	Serial.println(MQTT_BROKER_PORT);
-//	EEPROM.end();
-//	Serial.println("----------------------------------------------------------------------");
-//}
-//
-//void mqttSave() {
-//	Serial.println("======================================================================");
-//	Serial.println("## Save MQTT Configuration to EEPROM.");
-//	uint16_t addressStart = 512;
-//	EEPROM.begin(1024);
-//
-//	Serial.println("> PUT MQTT BROKER IP");
-//	EEPROM.put(addressStart, MQTT_BROKER_IP);
-//	addressStart += sizeof(MQTT_BROKER_IP);
-//	Serial.println("> PUT MQTT BROKER PORT");
-//	EEPROM.put(addressStart, MQTT_BROKER_PORT);
-//	Serial.println("> COMMIT");
-//	EEPROM.commit();
-//	EEPROM.end();
-//	Serial.println("----------------------------------------------------------------------");
-//}
+void mqttSave() {
+	File storage = LittleFS.open("/config/mqtt/ip", "w");
+	storage.println(MQTT_BROKER_IP);
+	storage.close();
+
+	storage = LittleFS.open("/config/mqtt/port","w");
+	storage.println(MQTT_BROKER_PORT);
+	storage.close();
+	
+	storage = LittleFS.open("/config/mqtt/timeout","w");
+	storage.println(MQTT_BROKER_TIMEOUT);
+	storage.close();
+	
+	storage = LittleFS.open("/config/mqtt/clientid","w");
+	storage.println(clientId);
+	storage.close();
+}

@@ -134,17 +134,16 @@ void changeAmplifierGain(int val) {
 }
 
 void gainLoad() {
-	uint16_t addressStart = 0;
-	EEPROM.begin(1024);
-	EEPROM.get(addressStart, amplifierGain);
-	EEPROM.end();
+	File storage = LittleFS.open("/config/gain", "r");
+	if (!storage)
+		amplifierGain = 0;
+	else
+		amplifierGain = storage.readString().toInt();
+	storage.close();
 }
 
 void gainSave() {
-	uint16_t addressStart = 0;
-	EEPROM.begin(1024);
-
-	EEPROM.put(addressStart, amplifierGain);
-	EEPROM.commit();
-	EEPROM.end();
+	File storage = LittleFS.open("/config/gain", "w");
+	storage.println(amplifierGain, DEC);
+	storage.close();
 }

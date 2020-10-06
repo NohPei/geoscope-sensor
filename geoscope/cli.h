@@ -16,5 +16,8 @@ bool cliInit(Stream &iostream = Serial, Stream &altstream = TelnetStream2);
 extern Commander cli;
 
 bool cli_swap(Commander &cmd = cli);
+bool backup(Commander &cmd = cli);
+bool restore(Commander &cmd = cli);
+
 
 #endif

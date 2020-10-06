@@ -27,9 +27,8 @@ extern int MQTT_BROKER_TIMEOUT;
 void mqttSetup();
 void mqttConnect();
 void mqttSend();
-//void mqttInit();
-//void mqttLoad();
-//void mqttSave();
+void mqttLoad();
+void mqttSave();
 void mqttOnMessage(String &topic, String &payload);
 
 #endif
