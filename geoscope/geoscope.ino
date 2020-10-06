@@ -52,6 +52,7 @@ void setup() {
 	Serial.println(F( "> WiFi Connected" ));
 	configTime(TIMEZONE, NTP_SERVER);
 	Serial.println(F( "> Time Configured" ));
+	mqttLoad(); //attempt to load configuration file
 	mqttSetup();
 	Serial.println(F( "> MQTT Configured" ));
 	adcSetup();

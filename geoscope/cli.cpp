@@ -339,6 +339,17 @@ bool mqtt_tmout(Commander &cmd) {
 	return 0;
 }
 
+bool inline mqtt_save(Commander &cmd) {
+	mqttSave();
+	return 0;
+}
+
+bool inline mqtt_load(Commander &cmd) {
+	mqttLoad();
+	mqttSetup();
+	return 0;
+}
+
 
 const commandList_t mqttCommands[] = {
 	{"ip", mqtt_ip, "Broker/Server IP Address"},
@@ -350,6 +361,8 @@ const commandList_t mqttCommands[] = {
 	{"client", mqtt_client, "Alias for `id`"},
 	{"commit", mqtt_commit, "Apply pending changes to MQTT Config"},
 	{"revert", mqtt_revert, "Discard pending changes to MQTT Config"},
+	{"save", mqtt_save, "Save configuration to Filesystem"},
+	{"load", mqtt_load, "Load configuration from Filesystem"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
@@ -412,7 +425,7 @@ bool fs_format(Commander &cmd) {
 	cmd.println(F("<<Formatting will erase all FS data!>>"));
 	String payload;
 	if (cmd.getString(payload)) {
-		if (payload.equalsIgnoreCase(F("OK"))) {
+		if (payload.equalsIgnoreCase(F("ok"))) {
 			cmd.println("> Formatting FS...");
 			return !LittleFS.format();
 			//return 0 on success, 1 otherwise
@@ -428,6 +441,8 @@ const commandList_t fsCommands[] = {
 	{"print", fs_cat, "Print file contents to terminal"},
 	{"cat", fs_cat, "Alias for `print`"},
 	{"format", fs_format, "reformat flash filesystem"},
+	{"backup", backup, "Backup all configrations to filesystem"},
+	{"restore", restore, "Restore all configiurations from filesystem"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
@@ -465,13 +480,21 @@ bool cli_mqtt(Commander &cmd) {
 	return 0;
 }
 
+bool cli_fs(Commander &cmd) {
+	if (cmd.transferTo(fsCommands, fsCmdCount, "fs")) {
+		//exit immediately if a command was found
+		sub_exit(cmd);
+	}
+	return 0;
+}
+
+
 const commandList_t mainCommands[] = {
 	{"net", cli_net, "Configure the network connection (changes made are applied by `net commit`)"},
 	{"mqtt", cli_mqtt, "Configure broker connection and logging (changes made are applied by `mqtt commit`)"},
 	{"adc", cli_adc, "Configure gain and adc debug mode"},
-	{"reboot", cli_reboot, "Restart this sensor"},
-	{"backup", backup, "Backup all configrations to filesystem"},
-	{"restore", restore, "Restore all configiurations from filesystem"}
+	{"fs", cli_fs, "Filesystem operations"},
+	{"reboot", cli_reboot, "Restart this sensor"}
 };
 
 const uint16_t mainCmdCount = sizeof(mainCommands);
@@ -487,7 +510,8 @@ bool backup(Commander &cmd) {
 	gainSave();
 	//Network
 	net_save(cmd);
-	//TODO: MQTTService
+	//MQTTService
+	mqtt_save(cmd);
 	return 0;
 }
 
@@ -498,7 +522,8 @@ bool restore(Commander &cmd) {
 	changeAmplifierGain(amplifierGain);
 	//Network
 	net_load(cmd);
-	//TODO: MQTTService
+	//MQTTService
+	mqtt_load(cmd);
 	return 0;
 }
 
