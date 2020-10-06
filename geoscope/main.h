@@ -22,8 +22,6 @@
 
 
 
-extern String timerNow;
-
 extern int amplifierGain;
 
 extern bool fullfilledBuffer;
