@@ -7,9 +7,9 @@
 
 // spi cs pin
 const uint8_t adcSSpin = 15; // ADC slave select pin
-const int8_t gain_d0 = 5;
-const int8_t gain_d1 = 4;
-const int8_t gain_d2 = 0;
+const int8_t gain_d0 = D1;
+const int8_t gain_d1 = D2;
+const int8_t gain_d2 = D3;
 
 bool fullfilledBuffer = false;
 int currentBufferRow = 0;
@@ -22,6 +22,9 @@ void adcSetup() {
 	pinMode(adcSSpin,OUTPUT); //enable SS pin for manual operation
 	
 	// Gain setup
+	pinMode(gain_d0, OUTPUT);
+	pinMode(gain_d1, OUTPUT);
+	pinMode(gain_d2, OUTPUT);
 	gainLoad();
 	changeAmplifierGain(amplifierGain);
 
