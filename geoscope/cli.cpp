@@ -401,10 +401,18 @@ bool cli_mqtt(Commander &cmd) {
 	return 0;
 }
 
+bool cli_swap(Commander &cmd) {
+	Stream* oldAlt = cmd.getAltPort();
+	cmd.attachAltPort(cmd.getInputPort());
+	cmd.attachInputPort(oldAlt);
+	cmd.attachOutputPort(oldAlt);
+}
+
 const commandList_t mainCommands[] = {
 	{"net", cli_net, "Configure the network connection (changes made are applied by `net commit`)"},
 	{"mqtt", cli_mqtt, "Configure broker connection and logging (changes made are applied by `mqtt commit`)"},
 	{"adc", cli_adc, "Configure gain and adc debug mode"},
+	{"swap", cli_swap, "Switch console input (between local Serial and Telnet)"},
 	{"reboot", cli_reboot, "Restart this sensor"}
 };
 
@@ -419,12 +427,13 @@ Commander cli;
 
 //@method: cliInit
 //@desc: configures the CLI interface using the standard Serial interface
-bool cliInit(Stream &iostream) {
+bool cliInit(Stream &iostream, Stream &altstream) {
 	//configure using Serial, start with main command set
 	cli.begin(&iostream, mainCommands, mainCmdCount);
+	cli.attachAltPort(&altstream);
 	cli.echo(true);
 	cli.commandPrompt(true);
-	cli.printCommanderVersion();
+	cli.copyRepyAlt(true);
 
 	net_revert(cli); //clear pending network configs at start
 	mqtt_revert(cli); //clear pending MQTT configs, too

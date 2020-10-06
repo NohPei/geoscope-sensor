@@ -9,10 +9,12 @@
 
 #include "main.h"
 #include <Commander.h>
+#include <TelnetStream2.h>
 
-bool cliInit(Stream &iostream = Serial);
+bool cliInit(Stream &iostream = Serial, Stream &altstream = TelnetStream2);
 
 extern Commander cli;
 
+bool cli_swap(Commander &cmd = cli);
 
 #endif

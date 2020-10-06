@@ -22,22 +22,26 @@ void setup() {
 	minYield(1000);
 	//timeSetup();
 	Serial.println("> WiFi Connected");
+
+	TelnetStream2.begin();
+	Serial.println(F( "> Remote Console Configured" ));
+	TelnetStream2.println(F( "> Remote Console Configured" ));
 	//	//timeSetup();
-	mqttSetup();
-	Serial.println("> MQTT Configured");
-	adcSetup();
-	Serial.println("> ADC Configured");
-	//	//fetchTime();
 	cliInit();
-	Serial.println("> CLI Ready");
+	cli.println("> CLI Ready");
+	mqttSetup();
+	cli.println("> MQTT Configured");
+	adcSetup();
+	cli.println("> ADC Configured");
+	//	//fetchTime();
 
 	// OTA Setup
 	ArduinoOTA.begin();
-	Serial.println("> OTA Ready");
+	cli.println("> OTA Ready");
 
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
-	Serial.println("> Boot Complete");
+	cli.println("> Boot Complete");
 
 	cli.printCommandPrompt();
 }
@@ -49,8 +53,16 @@ void loop() {
 	mqttSend();
 
 	if (cli.isStreaming() && cli.getInputPort()->available()) {
+		while(cli.getInputPort()->available()) //clear the input buffer
+			cli.getInputPort()->read();
 		cli.stopStreaming();
 	}
 	cli.update();
+
+	if (cli.getAltPort()->available()) { //if we get input on the other port
+		cli_swap(); //swap to that port
+		while(cli.getInputPort()->available()) //clear the input buffer
+			cli.getInputPort()->read();
+	}
 	ESP.wdtFeed();
 }
