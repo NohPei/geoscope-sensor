@@ -408,13 +408,13 @@ bool fs_cat(Commander &cmd) {
 	String payload;
 	if (cmd.getString(payload)) {
 		File f = LittleFS.open(payload,"r");
-		if (f.isFile()) {
-			cmd.println(f);
-		}
-		else {
+		if (!f) {
 			cmd.print(F("Cannot find file \""));
 			cmd.print(payload);
 			cmd.println("\"");
+		}
+		else {
+			cmd.println(f.readString());
 		}
 	}
 	return 0;
@@ -431,7 +431,19 @@ bool fs_format(Commander &cmd) {
 			//return 0 on success, 1 otherwise
 		}
 	}
-	cmd.print(F( "To continue, resend as `fs format ok`" ));
+	cmd.println(F( "To continue, resend as `fs format ok`" ));
+	return 0;
+}
+
+bool fs_ls(Commander &cmd) {
+	String path;
+	if (!cmd.getString(path)) {
+		path = "/";
+	}
+	Dir d = LittleFS.openDir(path);
+	while (d.next()) {
+		cmd.println(d.fileName());
+	}
 	return 0;
 }
 
@@ -440,6 +452,7 @@ bool fs_format(Commander &cmd) {
 const commandList_t fsCommands[] = {
 	{"print", fs_cat, "Print file contents to terminal"},
 	{"cat", fs_cat, "Alias for `print`"},
+	{"ls", fs_ls, "List directory contents"},
 	{"format", fs_format, "reformat flash filesystem"},
 	{"backup", backup, "Backup all configrations to filesystem"},
 	{"restore", restore, "Restore all configiurations from filesystem"},
