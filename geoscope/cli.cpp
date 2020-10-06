@@ -178,6 +178,22 @@ bool net_psk(Commander &cmd) {
 	return 0;
 }
 
+bool inline net_save(Commander &cmd) {
+	saveWifiConfig();
+	return 0;
+}
+
+bool inline net_load(Commander &cmd) {
+	loadWifiConfig();
+	wifiSetup();
+	return 0;
+}
+
+bool inline net_dump(Commander &cmd) {
+	showWifiConfig();
+	return 0;
+}
+
 bool sub_exit(Commander &cmd);
 
 
@@ -191,6 +207,9 @@ const commandList_t netCommands[] = {
 	{"key", net_psk, "Alias for `psk`"},
 	{"commit", net_commit, "Apply pending changes to Network Config"},
 	{"revert", net_revert, "Discard pending changes to Network Config"},
+	{"save", net_save, "Save configuration to Filesystem"},
+	{"load", net_load, "Load configuration from Filesystem"},
+	{"dump", net_dump, "Dump active configuration to Terminal"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
@@ -464,15 +483,23 @@ bool sub_exit(Commander &cmd) {
 
 //backs up all configurations to FS
 bool backup(Commander &cmd) {
+	//ADCModule
 	gainSave();
-	//TODO: all other configs
+	//Network
+	net_save(cmd);
+	//TODO: MQTTService
+	return 0;
 }
 
 //restores all configurations from FS
 bool restore(Commander &cmd) {
+	//ADCModule
 	gainLoad();
 	changeAmplifierGain(amplifierGain);
-	//TODO: all other configs
+	//Network
+	net_load(cmd);
+	//TODO: MQTTService
+	return 0;
 }
 
 Commander cli;

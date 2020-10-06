@@ -46,7 +46,7 @@ void setup() {
 	Serial.println(F( "\n> Starting Geoscope Boot" ));
 	LittleFS.begin();
 	Serial.println(F( "> FS Mounted" ));
-	initWifiConfig();
+	loadWifiConfig();
 	wifiSetup();
 	yield();
 	Serial.println(F( "> WiFi Connected" ));
