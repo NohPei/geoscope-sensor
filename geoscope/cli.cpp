@@ -62,8 +62,8 @@ bool net_commit(Commander &cmd) {
 		WiFi.disconnect(); //reconnect to WiFi
 		WiFi.begin(SSID, PASSWORD);
 
-		TelnetStream2.stop(); //also restart Telnet
-		TelnetStream2.begin();
+		TelnetStream.stop(); //also restart Telnet
+		TelnetStream.begin();
 	}
 
 	return net_revert(cmd);

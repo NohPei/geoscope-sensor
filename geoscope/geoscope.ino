@@ -70,9 +70,9 @@ void setup() {
 	yield();
 	Serial.println(F( "> WiFi Connected" ));
 
-	TelnetStream2.begin();
+	TelnetStream.begin();
 	Serial.println(F( "> Remote Console Configured" ));
-	TelnetStream2.println(F( "> Remote Console Configured" ));
+	TelnetStream.println(F( "> Remote Console Configured" ));
 
 	cliInit();
 	cli.println(F( "> CLI Ready" ));
