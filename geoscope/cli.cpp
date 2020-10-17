@@ -54,7 +54,18 @@ bool net_commit(Commander &cmd) {
 		DNS1.fromString(new_dns);
 		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, DNS1);
 	}
-	wifiSetup();
+	else { //otherwise, since it doesn't hurt to re-set the same IPs
+		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, WiFi.dnsIP());
+		//configure using the existing dnsIP
+	}
+	if (new_ssid[0] || new_key[0]) { //if SSID or PSK changed
+		WiFi.disconnect(); //reconnect to WiFi
+		WiFi.begin(SSID, PASSWORD);
+
+		TelnetStream2.stop(); //also restart Telnet
+		TelnetStream2.begin();
+	}
+
 	return net_revert(cmd);
 }
 

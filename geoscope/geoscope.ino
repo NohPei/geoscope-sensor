@@ -41,6 +41,21 @@ void ota_done() {
 	}
 }
 
+void ota_error(ota_error_t error) {
+	if (OTA_FS_UPDATE) {
+		cli.print("<< FS UPDATE ERROR ");
+		cli.print(error);
+		cli.println(" >>");
+		ota_done();
+	}
+	else {
+		cli.print("<< FIRMWARE UPDATE ERROR ");
+		cli.print(error);
+		cli.println(" >>");
+		ESP.restart();
+	}
+}
+
 WiFiServer tcp(80);
 ESPWebDAV dav;
 
@@ -75,9 +90,11 @@ void setup() {
 	cli.println(F( "> ADC Configured" ));
 
 	// OTA Setup
-	ArduinoOTA.begin();
 	ArduinoOTA.onStart(ota_startup);
 	ArduinoOTA.onEnd(ota_done);
+	ArduinoOTA.onError(ota_error);
+	ArduinoOTA.setHostname(("GEOSCOPE_"+clientId).c_str());
+	ArduinoOTA.begin();
 	cli.println(F( "> OTA Ready" ));
 
 	tcp.begin();
