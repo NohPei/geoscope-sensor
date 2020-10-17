@@ -11,7 +11,7 @@ Author:	Sripong
 #include "Network.h"
 #include "cli.h"
 #include <ArduinoOTA.h>
-#include <ESPWebDAV.h>
+#include <FTPServer.h>
 #include "main.h"
 
 #define TIMEZONE "America/New_York" //Eastern Standard/Daylight Time
@@ -56,9 +56,7 @@ void ota_error(ota_error_t error) {
 	}
 }
 
-WiFiServer tcp(80);
-ESPWebDAV dav;
-
+FTPServer ftp(LittleFS);
 
 void setup() {
 	Serial.begin(115200);
@@ -97,8 +95,7 @@ void setup() {
 	ArduinoOTA.begin();
 	cli.println(F( "> OTA Ready" ));
 
-	tcp.begin();
-	dav.begin(&tcp, &LittleFS);
+	ftp.begin("","");
 	cli.println(F( "> Remote FS Access Ready" ));
 
 	ESP.wdtDisable();
@@ -111,9 +108,9 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	ArduinoOTA.handle();
+	ftp.handleFTP();
 	adcPoll();
 	mqttSend();
-	dav.handleClient();
 
 	if (cli.isStreaming() && cli.getInputPort()->available()) {
 		while(cli.getInputPort()->available()) //clear the input buffer
