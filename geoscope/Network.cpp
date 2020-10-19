@@ -8,22 +8,26 @@
 
 
 char SSID[CHAR_BUF_SIZE], PASSWORD[CHAR_BUF_SIZE];
-IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP;
+IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP, DNS;
 
 void networkSetup() {
+	yield();
+	WiFi.softAPdisconnect(true);
+	WiFi.disconnect();
+
+	WiFi.persistent(false);
+	WiFi.mode(WIFI_STA);
+	WiFi.setAutoConnect(true);
+
 	loadWifiConfig();
 	wifiSetup();
 }
 
 void wifiSetup() {
-	minYield(10);
-	WiFi.softAPdisconnect(true);
-	WiFi.disconnect();
-	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK);
+	yield();
+	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, DNS);
 	WiFi.begin(SSID, PASSWORD);
-	// while (WiFi.status() != WL_CONNECTED) {
-		yield();
-	// }
+	yield();
 }
 
 void loadWifiConfig() {
@@ -32,7 +36,6 @@ void loadWifiConfig() {
 		initWifiConfig(); //start with the hard-coded config
 	}
 	Dir storage = LittleFS.openDir("/config/net");
-	IPAddress newDNS;
 	while (storage.next()) {
 		if (storage.isFile()) {
 			File f = storage.openFile("r");
@@ -58,7 +61,7 @@ void loadWifiConfig() {
 						NETMASK.fromString(temp);
 						break;
 					case 'd': //DNS
-						newDNS.fromString(temp);
+						DNS.fromString(temp);
 						break;
 					default:
 						//this file doesn't contain a config we use
@@ -66,10 +69,6 @@ void loadWifiConfig() {
 				}
 			}
 		}
-	}
-
-	if (newDNS.isSet()) { //if we loaded a DNS config
-		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, newDNS); //start using it
 	}
 }
 

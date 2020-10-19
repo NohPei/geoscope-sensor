@@ -26,6 +26,8 @@
 
 //Network Submenu
 
+bool cli_reboot(Commander&);
+
 char 	new_ssid[CHAR_BUF_SIZE],
 	new_key[CHAR_BUF_SIZE],
 	new_gateway[CHAR_BUF_SIZE],
@@ -44,29 +46,23 @@ bool net_revert(Commander &cmd) {
 }
 
 bool net_commit(Commander &cmd) {
-	new_ssid[0] && strncpy(SSID, new_ssid, CHAR_BUF_SIZE);
-	new_key[0] && strncpy(PASSWORD, new_key, CHAR_BUF_SIZE);
-	new_ip[0] && GEOSCOPE_IP.fromString(new_ip);
-	new_gateway[0] && GATEWAY_IP.fromString(new_gateway);
-	new_mask[0] && NETMASK.fromString(new_mask);
-	if (new_dns[0]) { //need special handling for DNS, since it was never configured before
-		IPAddress DNS1;
-		DNS1.fromString(new_dns);
-		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, DNS1);
-	}
-	else { //otherwise, since it doesn't hurt to re-set the same IPs
-		WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, WiFi.dnsIP());
-		//configure using the existing dnsIP
-	}
-	if (new_ssid[0] || new_key[0]) { //if SSID or PSK changed
-		WiFi.disconnect(); //reconnect to WiFi
-		WiFi.begin(SSID, PASSWORD);
+	bool changed = new_ssid[0] && strncpy(SSID, new_ssid, CHAR_BUF_SIZE);
+	changed |= new_key[0] && strncpy(PASSWORD, new_key, CHAR_BUF_SIZE);
+	changed |= new_ip[0] && GEOSCOPE_IP.fromString(new_ip);
+	changed |= new_gateway[0] && GATEWAY_IP.fromString(new_gateway);
+	changed |= new_mask[0] && NETMASK.fromString(new_mask);
+	new_dns[0] && DNS.fromString(new_dns);
 
-		TelnetStream.stop(); //also restart Telnet
-		TelnetStream.begin();
-	}
 
-	return net_revert(cmd);
+	if (changed) { //if anything vital changed
+		wifiSetup(); //reload WiFi config
+		yield(); //let the WiFi update/reconnect
+		saveWifiConfig(); //store the WiFi config in FS
+		forceReset(); //restart to apply changes
+	}
+	
+	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, DNS);
+	return net_revert(cmd); //if there were no changes, 
 }
 
 bool net_ip(Commander &cmd) {
@@ -216,7 +212,7 @@ const commandList_t netCommands[] = {
 	{"ssid", net_ssid, "SSID of WiFi network to connect to"},
 	{"psk", net_psk, "Pre-Shared Key for WiFi network"},
 	{"key", net_psk, "Alias for `psk`"},
-	{"commit", net_commit, "Apply pending changes to Network Config"},
+	{"commit", net_commit, "Apply pending changes to Network Config (Requires a Restart)"},
 	{"revert", net_revert, "Discard pending changes to Network Config"},
 	{"save", net_save, "Save configuration to Filesystem"},
 	{"load", net_load, "Load configuration from Filesystem"},
