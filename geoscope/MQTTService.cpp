@@ -26,7 +26,7 @@ int amplifierGain = 100;
 
 void mqttSetup() {
 	MQTT_TOPIC = "geoscope/node1/" + clientId;
-	payloadHeader = F("{\"uuid\":\"GEOSCOPE-") + clientId + F("\",\"data\":");
+	payloadHeader = "{\"uuid\":\"GEOSCOPE-" + clientId + "\",\"data\":";
 	WiFi.hostname("GECOSCOPE-"+clientId);
 	ArduinoOTA.setHostname(("GEOSCOPE-"+clientId).c_str());
 
@@ -41,7 +41,7 @@ void mqttSetup() {
 	}
 
 	payload = payloadHeader;
-	payload += F("\"[Device Started]\"}");
+	payload += "\"[Device Started]\"}";
 	mqttclient.publish("geoscope/reply", payload);
 
 	if (!mqttclient.connected()) {
@@ -51,7 +51,7 @@ void mqttSetup() {
 	}
 	gainLoad();
 	payload = payloadHeader;
-	payload += F("\"[Current gain: ") + String(amplifierGain) + "]\"}";
+	payload += "\"[Current gain: " + String(amplifierGain) + "]\"}";
 	mqttclient.publish("geoscope/reply", payload);
 }
 
@@ -60,7 +60,7 @@ void mqttConnect() {
 		//initiates self reset if we're requiring Broker for operation (can be turned off during testing),
 		// 	and there's a set attemptTimeout
 		payload = payloadHeader;
-		payload += F("\"[Device Self Reset]\"}");
+		payload += "\"[Device Self Reset]\"}";
 		mqttclient.publish("geoscope/reply", payload);
 		forceReset();
 	}
@@ -97,7 +97,7 @@ void mqttSend() {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
 		}
 		payload.remove(payload.length()-1); //trash that last ','
-		payload += F("],\"gain\":") + String(amplifierGain) + "}";
+		payload += "],\"gain\":" + String(amplifierGain) + "}";
 
 		if (!mqttclient.connected()) {
 			if (!attemptTimeout)
@@ -109,7 +109,7 @@ void mqttSend() {
 	}
 
 	mqttclient.loop();
-	delay(10);
+	yield();
 }
 
 void mqttOnMessage(String & topic, String & in_payload) {

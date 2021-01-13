@@ -418,7 +418,7 @@ bool fs_cat(Commander &cmd) {
 		if (!f) {
 			cmd.print(F("Cannot find file \""));
 			cmd.print(payload);
-			cmd.println("\"");
+			cmd.println(F( "\"" ));
 		}
 		else {
 			cmd.println(f.readString());
@@ -433,7 +433,7 @@ bool fs_format(Commander &cmd) {
 	String payload;
 	if (cmd.getString(payload)) {
 		if (payload.equalsIgnoreCase(F("ok"))) {
-			cmd.println("> Formatting FS...");
+			cmd.println(F( "> Formatting FS..." ));
 			return !LittleFS.format();
 			//return 0 on success, 1 otherwise
 		}

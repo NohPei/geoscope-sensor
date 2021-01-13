@@ -43,15 +43,15 @@ void ota_done() {
 
 void ota_error(ota_error_t error) {
 	if (OTA_FS_UPDATE) {
-		cli.print("<< FS UPDATE ERROR ");
+		cli.print(F("<< FS UPDATE ERROR "));
 		cli.print(error);
-		cli.println(" >>");
+		cli.println(F( " >>" ));
 		ota_done();
 	}
 	else {
-		cli.print("<< FIRMWARE UPDATE ERROR ");
+		cli.print(F( "<< FIRMWARE UPDATE ERROR " ));
 		cli.print(error);
-		cli.println(" >>");
+		cli.println(F( " >>" ));
 		ESP.restart();
 	}
 }
