@@ -1,5 +1,5 @@
-// 
-// 
+//
+//
 //
 
 
@@ -7,6 +7,7 @@
 #include <ArduinoOTA.h>
 #include "Network.h"
 #include "cli.h"
+#include <ESP8266httpUpdate.h>
 
 char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
@@ -73,6 +74,7 @@ void mqttConnect() {
 		// Subscribe to topic geoscope/config/gain
 		mqttclient.subscribe("geoscope/config/gain");
 		mqttclient.subscribe("geoscope/restart");
+		mqttclient.subscribe("geoscope/update");
 	}
 	else
 	{
@@ -91,7 +93,7 @@ void mqttSend() {
 		}
 		fullfilledBuffer = false;
 		payload.reserve(payloadHeader.length() + RAW_COL_BUFFER_SIZE*5 + 20);
-			//reduce memory fragmentation by pre-reserving the string buffer
+		//reduce memory fragmentation by pre-reserving the string buffer
 		payload = payloadHeader + "[";
 		for (int i = 0; i < RAW_COL_BUFFER_SIZE; i++) {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
@@ -113,31 +115,46 @@ void mqttSend() {
 }
 
 void mqttOnMessage(String & topic, String & in_payload) {
-	String payload;
+	payload.reserve(payloadHeader.length()*4 + CHAR_BUF_SIZE);
 	if (topic.equalsIgnoreCase("geoscope/config/gain")) {
 		interuptDisable();
 		// Set new amplifier gain value
 		amplifierGain = in_payload.toInt();
 		changeAmplifierGain(amplifierGain);
-		String payloads = payloadHeader;
-		payloads += "\"[Set new gain to "+ in_payload +"]\"}";
-		mqttclient.publish("geoscope/reply", payloads);
+		payload = payloadHeader;
+		payload += "\"[Set new gain to "+ in_payload +"]\"}";
+		mqttclient.publish("geoscope/reply", payload);
 		minYield(10);
 		interuptEnable();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {
 		interuptDisable();
-		String payloads = payloadHeader;
-		payloads += "\"[Restart]\"}";
-		mqttclient.publish("geoscope/reply", payloads);
+		payload = payloadHeader;
+		payload += "\"[Restart]\"}";
+		mqttclient.publish("geoscope/reply", payload);
 		minYield(10);
 		forceReset();
 	}
-	else if (topic.equalsIgnoreCase("geoscope/hb")) {
+	else if (topic.equalsIgnoreCase("geoscope/update")) {
 		payload = payloadHeader;
-		payload += "\"[GEOSCOPE-" + clientId;
-		payload += " working]\"}";
+		payload += "\"[Update]\",\"uri\":\""+in_payload+"\"}";
 		mqttclient.publish("geoscope/reply", payload);
+		minYield(10);
+		ESPhttpUpdate.closeConnectionsOnUpdate(false);
+		t_httpUpdate_return status = ESPhttpUpdate.update(in_payload);
+		payload = payloadHeader;
+		switch (status) {
+			case HTTP_UPDATE_OK:
+				payload += "\"[Update SUCCESS]\"}";
+				break;
+			case HTTP_UPDATE_FAILED:
+			case HTTP_UPDATE_NO_UPDATES:
+				payload += "\"[Update FAIL]\"}";
+				break;
+		}
+		mqttclient.publish("geoscope/reply", payload);
+		minYield(10);
+		forceReset(); //always reset, even after a botched update. It's just safer that way
 	}
 }
 
@@ -183,11 +200,11 @@ void mqttSave() {
 	storage = LittleFS.open("/config/mqtt/port","w");
 	storage.println(MQTT_BROKER_PORT);
 	storage.close();
-	
+
 	storage = LittleFS.open("/config/mqtt/timeout","w");
 	storage.println(MQTT_BROKER_TIMEOUT);
 	storage.close();
-	
+
 	storage = LittleFS.open("/config/mqtt/clientid","w");
 	storage.println(clientId);
 	storage.close();
