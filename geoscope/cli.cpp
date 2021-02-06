@@ -214,8 +214,6 @@ const commandList_t netCommands[] = {
 	{"key", net_psk, "Alias for `psk`"},
 	{"commit", net_commit, "Apply pending changes to Network Config (Requires a Restart)"},
 	{"revert", net_revert, "Discard pending changes to Network Config"},
-	{"save", net_save, "Save configuration to Filesystem"},
-	{"load", net_load, "Load configuration from Filesystem"},
 	{"dump", net_dump, "Dump active configuration to Terminal"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
