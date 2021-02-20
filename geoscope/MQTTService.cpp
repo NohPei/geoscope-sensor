@@ -82,6 +82,13 @@ void mqttConnect() {
 	}
 }
 
+void mqttReportGain(int newGain) {
+		payload = payloadHeader;
+		payload += "\"[Set new gain to "+ String(newGain) +"]\"}";
+		mqttclient.publish("geoscope/reply", payload);
+		minYield(10);
+}
+
 void mqttSend() {
 	if (fullfilledBuffer) {
 		int buffer_row = 0;
@@ -121,10 +128,7 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		// Set new amplifier gain value
 		amplifierGain = in_payload.toInt();
 		changeAmplifierGain(amplifierGain);
-		payload = payloadHeader;
-		payload += "\"[Set new gain to "+ in_payload +"]\"}";
-		mqttclient.publish("geoscope/reply", payload);
-		minYield(10);
+		mqttReportGain(amplifierGain);
 		interuptEnable();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {

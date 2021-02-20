@@ -381,6 +381,7 @@ bool adc_gain(Commander &cmd) {
 	if (cmd.getInt(payload)) {
 		amplifierGain = payload;
 		changeAmplifierGain(payload);
+		mqttReportGain(payload);
 	}
 	else {
 		cmd.rewind();
@@ -546,6 +547,7 @@ bool restore(Commander &cmd) {
 	//ADCModule
 	gainLoad();
 	changeAmplifierGain(amplifierGain);
+	mqttReportGain(amplifierGain);
 	//Network
 	net_load(cmd);
 	//MQTTService
