@@ -18,6 +18,7 @@ void networkSetup() {
 	WiFi.persistent(false);
 	WiFi.mode(WIFI_STA);
 	WiFi.setAutoConnect(true);
+	WiFi.setAutoReconnect(true); //we should reconnect if something happens, too
 
 	loadWifiConfig();
 	wifiSetup();

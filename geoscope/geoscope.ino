@@ -13,6 +13,7 @@ Author:	Sripong
 #include <ArduinoOTA.h>
 #include <ESPWebDAV.h>
 #include "main.h"
+#include <AsyncPing.h>
 
 #define TIMEZONE "America/New_York" //Eastern Standard/Daylight Time
 #define NTP_SERVER "pool.ntp.org" //standard ntp pool server.
@@ -20,6 +21,9 @@ Author:	Sripong
 
 
 static bool OTA_FS_UPDATE = false;
+
+#define WIFI_PING_INTERVAL_MS 60000
+static unsigned long nextPingTime = 0;
 
 void ota_startup() {
 	OTA_FS_UPDATE = ArduinoOTA.getCommand() == U_FS;
@@ -60,6 +64,25 @@ WiFiServer tcp(80);
 ESPWebDAV dav;
 
 
+AsyncPing ping;
+
+bool ping_received(const AsyncPingResponse& response) {
+	return false; //keep going
+}
+
+bool ping_done(const AsyncPingResponse& response) {
+	if (response.total_recv == 0) { //if we got no responses
+		IPAddress nullIP = IPAddress(0,0,0,0);
+		WiFi.config(nullIP, nullIP, nullIP); //force WiFi back to DHCP
+		if (WiFi.status() == WL_CONNECTED)
+			WiFi.reconnect(); //and reconnect (or just connect freshly)
+		return false;
+	}
+	return true;
+}
+
+
+
 void setup() {
 	Serial.begin(115200);
 	Serial.println(F( "\n> Starting Geoscope Boot" ));
@@ -70,7 +93,7 @@ void setup() {
 	loadWifiConfig();
 	wifiSetup();
 	yield();
-	Serial.println(F( "> WiFi Connected" ));
+	Serial.println(F( "> WiFi Configured" ));
 
 	TelnetStream.begin();
 	Serial.println(F( "> Remote Console Configured" ));
@@ -101,6 +124,11 @@ void setup() {
 	dav.begin(&tcp, &LittleFS);
 	cli.println(F( "> Remote FS Access Ready" ));
 
+	ping.on(true, ping_received);
+	ping.on(false, ping_done);
+	nextPingTime = millis() + WIFI_PING_INTERVAL_MS;
+	cli.println(F("> Keepalive Ping Enabled"));
+
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
 	cli.println(F( "> Boot Complete" ));
@@ -114,6 +142,11 @@ void loop() {
 	dav.handleClient();
 	adcPoll();
 	mqttSend();
+
+	if (millis() >= nextPingTime ) { //every interval
+		nextPingTime = millis() + WIFI_PING_INTERVAL_MS;
+		ping.begin(WiFi.gatewayIP(),5); //try pinging the gateway
+	}
 
 	if (cli.isStreaming() && cli.getInputPort()->available()) {
 		while(cli.getInputPort()->available()) //clear the input buffer
