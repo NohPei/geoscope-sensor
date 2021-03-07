@@ -30,7 +30,7 @@ void mqttSetup() {
 	MQTT_TOPIC = "geoscope/node1/" + clientId;
 	CONFIG_TOPIC_PREFIX = "geoscope/nodeconfig/" + clientId + "/";
 	payloadHeader = "{\"uuid\":\"GEOSCOPE-" + clientId + "\",\"data\":";
-	WiFi.hostname("GECOSCOPE-"+clientId);
+	WiFi.hostname("GEOSCOPE-"+clientId);
 	ArduinoOTA.setHostname(("GEOSCOPE-"+clientId).c_str());
 
 

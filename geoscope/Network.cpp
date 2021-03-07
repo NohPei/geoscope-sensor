@@ -23,8 +23,17 @@ void networkSetup() {
 	wifiSetup();
 }
 
+void setDHCP() {
+	GEOSCOPE_IP = IPAddress(0,0,0,0);
+	GATEWAY_IP = IPAddress(0,0,0,0);
+	NETMASK = IPAddress(0,0,0,0);
+	DNS = IPAddress(0,0,0,0);
+}
+
 void wifiSetup() {
 	yield();
+	if (!GEOSCOPE_IP.isSet() || !GATEWAY_IP.isSet() || !NETMASK.isSet())
+		setDHCP();
 	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, DNS);
 	WiFi.begin(SSID, PASSWORD);
 	yield();
@@ -52,13 +61,16 @@ void loadWifiConfig() {
 						PASSWORD[CHAR_BUF_SIZE-1] = 0;
 						break;
 					case 'i': //IP
-						GEOSCOPE_IP.fromString(temp);
+						if (!GEOSCOPE_IP.fromString(temp))
+							setDHCP(); //if any of the core config can't be read, force DHCP
 						break;
 					case 'g': //Gateway
-						GATEWAY_IP.fromString(temp);
+						if (!GATEWAY_IP.fromString(temp))
+							setDHCP();
 						break;
 					case 'm': //subnet Mask
-						NETMASK.fromString(temp);
+						if (!NETMASK.fromString(temp))
+							setDHCP();
 						break;
 					case 'd': //DNS
 						DNS.fromString(temp);
@@ -104,11 +116,9 @@ void saveWifiConfig() {
 void initWifiConfig() {
 	strncpy_P(SSID, PSTR("The Promised LAN"), CHAR_BUF_SIZE);
 	strncpy_P(PASSWORD, PSTR("GoBucks!"), CHAR_BUF_SIZE);
-	GEOSCOPE_IP = IPAddress(10,147,20, DEVICE_IP);
-	GATEWAY_IP = IPAddress(10, 147, 20, 1);
-	NETMASK = IPAddress(255, 255, 255, 0);
-	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, GATEWAY_IP);
-		//set Gateway as DNS by default
+	setDHCP();
+	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK);
+		//use DHCP by default
 }
 
 void showWifiConfig() {
