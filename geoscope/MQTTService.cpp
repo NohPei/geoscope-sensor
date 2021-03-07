@@ -16,7 +16,8 @@ int MQTT_BROKER_TIMEOUT = 30000; //timeout without reaching the broker before re
 String clientId = "152";
 String 	MQTT_TOPIC,
 	payloadHeader,
-	payload;
+	payload,
+	CONFIG_TOPIC_PREFIX;
 
 WiFiClient wifiClient;
 MQTTClient mqttclient(MQTT_PACKAGE_SIZE);
@@ -27,6 +28,7 @@ int amplifierGain = 100;
 
 void mqttSetup() {
 	MQTT_TOPIC = "geoscope/node1/" + clientId;
+	CONFIG_TOPIC_PREFIX = "geoscope/nodeconfig/" + clientId + "/";
 	payloadHeader = "{\"uuid\":\"GEOSCOPE-" + clientId + "\",\"data\":";
 	WiFi.hostname("GECOSCOPE-"+clientId);
 	ArduinoOTA.setHostname(("GEOSCOPE-"+clientId).c_str());
@@ -75,6 +77,7 @@ void mqttConnect() {
 		mqttclient.subscribe("geoscope/config/gain");
 		mqttclient.subscribe("geoscope/restart");
 		mqttclient.subscribe("geoscope/update");
+		mqttclient.subscribe(CONFIG_TOPIC_PREFIX + "#");
 	}
 	else
 	{
@@ -159,6 +162,10 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		mqttclient.publish("geoscope/reply", payload);
 		minYield(10);
 		forceReset(); //always reset, even after a botched update. It's just safer that way
+	}
+	else if (topic.substring(0,CONFIG_TOPIC_PREFIX.length()).equalsIgnoreCase(CONFIG_TOPIC_PREFIX)) {
+		cli.feedString(topic.substring(CONFIG_TOPIC_PREFIX.length()) + " " + in_payload);
+		//feed the input + payload as a command to the cli (for reconfiguring)
 	}
 }
 
