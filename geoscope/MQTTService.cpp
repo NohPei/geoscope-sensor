@@ -1,5 +1,5 @@
-//
-//
+// 
+// 
 //
 
 
@@ -7,7 +7,6 @@
 #include <ArduinoOTA.h>
 #include "Network.h"
 #include "cli.h"
-#include <ESP8266httpUpdate.h>
 
 char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
@@ -76,7 +75,6 @@ void mqttConnect() {
 		// Subscribe to topic geoscope/config/gain
 		mqttclient.subscribe("geoscope/config/gain");
 		mqttclient.subscribe("geoscope/restart");
-		mqttclient.subscribe("geoscope/update");
 		mqttclient.subscribe(CONFIG_TOPIC_PREFIX + "#");
 	}
 	else
@@ -125,7 +123,6 @@ void mqttSend() {
 }
 
 void mqttOnMessage(String & topic, String & in_payload) {
-	payload.reserve(payloadHeader.length()*4 + CHAR_BUF_SIZE);
 	if (topic.equalsIgnoreCase("geoscope/config/gain")) {
 		interuptDisable();
 		// Set new amplifier gain value
@@ -142,26 +139,11 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		minYield(10);
 		forceReset();
 	}
-	else if (topic.equalsIgnoreCase("geoscope/update")) {
+	else if (topic.equalsIgnoreCase("geoscope/hb")) {
 		payload = payloadHeader;
-		payload += "\"[Update]\",\"uri\":\""+in_payload+"\"}";
+		payload += "\"[GEOSCOPE-" + clientId;
+		payload += " working]\"}";
 		mqttclient.publish("geoscope/reply", payload);
-		minYield(10);
-		ESPhttpUpdate.closeConnectionsOnUpdate(false);
-		t_httpUpdate_return status = ESPhttpUpdate.update(in_payload);
-		payload = payloadHeader;
-		switch (status) {
-			case HTTP_UPDATE_OK:
-				payload += "\"[Update SUCCESS]\"}";
-				break;
-			case HTTP_UPDATE_FAILED:
-			case HTTP_UPDATE_NO_UPDATES:
-				payload += "\"[Update FAIL]\"}";
-				break;
-		}
-		mqttclient.publish("geoscope/reply", payload);
-		minYield(10);
-		forceReset(); //always reset, even after a botched update. It's just safer that way
 	}
 	else if (topic.substring(0,CONFIG_TOPIC_PREFIX.length()).equalsIgnoreCase(CONFIG_TOPIC_PREFIX)) {
 		cli.feedString(topic.substring(CONFIG_TOPIC_PREFIX.length()) + " " + in_payload);
