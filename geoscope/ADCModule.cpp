@@ -15,6 +15,7 @@ bool fullfilledBuffer = false;
 int currentBufferRow = 0;
 int currentBufferPosition = 0;
 uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
+volatile uint32_t adcReadableTime_cycles = 0;
 
 void adcSetup() {
 	// SPI Setup
@@ -37,6 +38,7 @@ void adcSetup() {
 //ADC sampling interrupt handler
 void ICACHE_RAM_ATTR adcEnable_isr() {
 	digitalWrite(adcSSpin,LOW); //dropping the SS pin enables the ADC, captures and holds one sample
+	adcReadableTime_cycles = ESP.getCycleCount() + ADC_HOLD_TIME_CYCLES;
 }
 
 //disable and reset the sampling
@@ -58,7 +60,7 @@ void interuptEnable() {
 }
 
 void adcPoll() {
-	if (!digitalRead(adcSSpin)) { //if we've enabled the ADC
+	if (!digitalRead(adcSSpin) && ESP.getCycleCount() > adcReadableTime_cycles) { //if we've enabled the ADC and it's ready to be read
 		uint16_t rawVal = SPI.transfer16(0); //the ADC doesn't take input, but we have to send something
 		rawVal = rawVal >> 1; //16 bits transferred: 1 null, 12 data, 3 junk. Throw away the junk
 		rawVal &= 0x0FFF; //only the lower 12 bits are valid, so toss the high 4 bits
