@@ -504,6 +504,7 @@ bool cli_swap(Commander &cmd) {
 	cmd.attachAltPort(cmd.getInputPort());
 	cmd.attachInputPort(oldAlt);
 	cmd.attachOutputPort(oldAlt);
+	return 0;
 }
 
 bool cli_fs(Commander &cmd) {

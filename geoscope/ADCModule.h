@@ -18,8 +18,8 @@
 
 void adcSetup();
 void adcPoll();
-void interuptEnable();
-void interuptDisable();
+void samplingEnable();
+void samplingDisable();
 void changeAmplifierGain(int);
 void gainSave();
 void gainLoad();

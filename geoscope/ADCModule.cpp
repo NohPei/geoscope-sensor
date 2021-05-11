@@ -1,6 +1,6 @@
-// 
-// 
-// 
+//
+//
+//
 
 #include "ADCModule.h"
 #include "cli.h"
@@ -12,16 +12,19 @@ const int8_t gain_d1 = D2;
 const int8_t gain_d2 = D3;
 
 bool fullfilledBuffer = false;
-int currentBufferRow = 0;
-int currentBufferPosition = 0;
+unsigned int currentBufferRow = 0;
+unsigned int currentBufferPosition = 0;
 uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 volatile uint32_t adcReadableTime_cycles = 0;
+
+const SPISettings adcConfig = SPISettings(0.8e6, MSBFIRST, SPI_MODE0);
+//enale SPI at 800kHz max rate (from MCP3201 datasheet)
 
 void adcSetup() {
 	// SPI Setup
 	SPI.begin();
 	pinMode(adcSSpin,OUTPUT); //enable SS pin for manual operation
-	
+
 	// Gain setup
 	pinMode(gain_d0, OUTPUT);
 	pinMode(gain_d1, OUTPUT);
@@ -31,7 +34,7 @@ void adcSetup() {
 
 	// TIMER1 ISR Setup
 	timer1_isr_init();
-	interuptEnable();
+	samplingEnable();
 	digitalWrite(adcSSpin,HIGH); //ensure that SS is disabled (until the interrupt triggers)
 }
 
@@ -42,7 +45,7 @@ void ICACHE_RAM_ATTR adcEnable_isr() {
 }
 
 //disable and reset the sampling
-void interuptDisable() {
+void samplingDisable() {
 	timer1_detachInterrupt();
 	timer1_disable();
 	fullfilledBuffer = false;
@@ -51,12 +54,11 @@ void interuptDisable() {
 }
 
 //enable sampling by interrupt
-void interuptEnable() {
+void samplingEnable() {
 	timer1_attachInterrupt(adcEnable_isr);
 	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);			// 80MHz / 16 = 5MHz
 	timer1_write(TIMER1_WRITE_TIME);
-	SPI.beginTransaction(SPISettings(0.8e6, MSBFIRST, SPI_MODE0));
-	//enale SPI at 800kHz max rate (from MCP3201 datasheet)
+	SPI.beginTransaction(adcConfig);
 }
 
 void adcPoll() {

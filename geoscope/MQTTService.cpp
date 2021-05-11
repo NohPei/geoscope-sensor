@@ -1,5 +1,5 @@
-// 
-// 
+//
+//
 //
 
 
@@ -124,15 +124,15 @@ void mqttSend() {
 
 void mqttOnMessage(String & topic, String & in_payload) {
 	if (topic.equalsIgnoreCase("geoscope/config/gain")) {
-		interuptDisable();
+		samplingDisable();
 		// Set new amplifier gain value
 		amplifierGain = in_payload.toInt();
 		changeAmplifierGain(amplifierGain);
 		mqttReportGain(amplifierGain);
-		interuptEnable();
+		samplingEnable();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {
-		interuptDisable();
+		samplingDisable();
 		payload = payloadHeader;
 		payload += "\"[Restart]\"}";
 		mqttclient.publish("geoscope/reply", payload);

@@ -13,7 +13,7 @@
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
 
-#define RAW_ROW_BUFFER_SIZE 2
+#define RAW_ROW_BUFFER_SIZE 3
 #define RAW_COL_BUFFER_SIZE 500
 
 #define CHAR_BUF_SIZE 32
@@ -25,7 +25,7 @@
 extern int amplifierGain;
 
 extern bool fullfilledBuffer;
-extern int currentBufferRow;
+extern unsigned int currentBufferRow;
 extern uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 
 #endif
