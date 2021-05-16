@@ -10,6 +10,7 @@ Author:	Sripong
 #include "MQTTService.h"
 #include "Network.h"
 #include "cli.h"
+#include "logfile.h"
 #include <ArduinoOTA.h>
 #include <ESPWebDAV.h>
 #include "main.h"
@@ -28,13 +29,16 @@ static unsigned long nextPingTime = 0;
 void ota_startup() {
 	OTA_FS_UPDATE = ArduinoOTA.getCommand() == U_FS;
 	if (OTA_FS_UPDATE) {
-		cli.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
-		LittleFS.end();
+		allOutputs.print(timestamp());
+		allOutputs.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
 	}
 	else {
 		backup(); //save configurations to FS
-		cli.println(F("> Updating Firmware over OTA"));
+		allOutputs.print(timestamp());
+		allOutputs.println(F("> Updating Firmware over OTA"));
 	}
+	LocalLogs.close();
+	LittleFS.end();
 }
 
 void ota_done() {
@@ -47,15 +51,18 @@ void ota_done() {
 
 void ota_error(ota_error_t error) {
 	if (OTA_FS_UPDATE) {
-		cli.print(F("<< FS UPDATE ERROR "));
-		cli.print(error);
-		cli.println(F( " >>" ));
+		allOutputs.print(timestamp());
+		allOutputs.print(F("<< FS UPDATE ERROR "));
+		allOutputs.print(error);
+		allOutputs.println(F( " >>" ));
 		ota_done();
 	}
 	else {
-		cli.print(F( "<< FIRMWARE UPDATE ERROR " ));
-		cli.print(error);
-		cli.println(F( " >>" ));
+		allOutputs.print(timestamp());
+		allOutputs.print(F( "<< FIRMWARE UPDATE ERROR " ));
+		allOutputs.print(error);
+		allOutputs.println(F( " >>" ));
+		LocalLogs.close();
 		ESP.restart();
 	}
 }
@@ -81,7 +88,9 @@ bool ping_done(const AsyncPingResponse& response) {
 	return true;
 }
 
-
+Print* outputs[] = {&Serial, &LocalLogs, &TelnetStream};
+NeoTee allOutputs = NeoTee(outputs, 0); //initially, we can't assume any of the streams are valid
+FSFilePrint LocalLogs = FSFilePrint(LittleFS, "/logfile", 3, 2048);
 
 void setup() {
 	Serial.begin(115200);
@@ -89,28 +98,39 @@ void setup() {
 
 	LittleFS.begin();
 	Serial.println(F( "> FS Mounted" ));
+	
+	LocalLogs.open();
+	allOutputs = NeoTee(outputs, 2);
+	allOutputs.print(timestamp());
+	allOutputs.println(F("> Logging Configured"));
 
 	loadWifiConfig();
 	wifiSetup();
 	yield();
-	Serial.println(F( "> WiFi Configured" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> WiFi Configured" ));
 
 	TelnetStream.begin();
-	Serial.println(F( "> Remote Console Configured" ));
-	TelnetStream.println(F( "> Remote Console Configured" ));
+	allOutputs = NeoTee(outputs, 3);
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> Remote Console Configured" ));
 
 	cliInit();
-	cli.println(F( "> CLI Ready" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> CLI Ready" ));
 
 	configTime(TIMEZONE, NTP_SERVER);
-	cli.println(F( "> Time Configured" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> Time Configured" ));
 
 	mqttLoad(); //attempt to load configuration file
 	mqttSetup();
-	cli.println(F( "> MQTT Configured" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> MQTT Configured" ));
 
 	adcSetup();
-	cli.println(F( "> ADC Configured" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> ADC Configured" ));
 
 	// OTA Setup
 	ArduinoOTA.onStart(ota_startup);
@@ -118,20 +138,24 @@ void setup() {
 	ArduinoOTA.onError(ota_error);
 	ArduinoOTA.setHostname(("GEOSCOPE_"+clientId).c_str());
 	ArduinoOTA.begin();
-	cli.println(F( "> OTA Ready" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> OTA Ready" ));
 
 	tcp.begin();
 	dav.begin(&tcp, &LittleFS);
-	cli.println(F( "> Remote FS Access Ready" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> Remote FS Access Ready" ));
 
 	ping.on(true, ping_received);
 	ping.on(false, ping_done);
 	nextPingTime = millis() + WIFI_PING_INTERVAL_MS;
-	cli.println(F("> Keepalive Ping Enabled"));
+	allOutputs.print(timestamp());
+	allOutputs.println(F("> Keepalive Ping Enabled"));
 
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
-	cli.println(F( "> Boot Complete" ));
+	allOutputs.print(timestamp());
+	allOutputs.println(F( "> Boot Complete" ));
 
 	cli.printCommandPrompt();
 }
@@ -152,6 +176,8 @@ void loop() {
 		while(cli.getInputPort()->available()) //clear the input buffer
 			cli.getInputPort()->read();
 		cli.stopStreaming();
+		LocalLogs.print(timestamp());
+		LocalLogs.println("Stopped dumping ADC data");
 	}
 	cli.update();
 

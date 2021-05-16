@@ -1,14 +1,19 @@
-// 
-// 
-// 
+//
+//
+//
 
 #include "Watchdog.h"
-#include "cli.h"
+#include "logfile.h"
+#include "MQTTService.h"
 
 void forceReset() {
-	cli.println(F("<< forceReset Triggered! >>"));
+	allOutputs.print(timestamp());
+	allOutputs.println(F("<< forceReset Triggered! >>"));
+	LocalLogs.close(); //gracefully flush the log file
+	LittleFS.end(); //and unmount the filesystem
+	mqttShutdown(); //and disconnect from the Broker
 	ESP.wdtDisable();
-	minYield(10);
+	minYield(10); //give a little time for any last wireless processing to finish
 	ESP.restart();
 }
 

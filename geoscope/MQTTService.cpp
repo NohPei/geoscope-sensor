@@ -7,6 +7,7 @@
 #include <ArduinoOTA.h>
 #include "Network.h"
 #include "cli.h"
+#include "logfile.h"
 
 char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
@@ -45,6 +46,7 @@ void mqttSetup() {
 	payload = payloadHeader;
 	payload += "\"[Device Started]\"}";
 	mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+	LocalLogs.print(timestamp());
 
 	payload = payloadHeader;
 	payload += "\"[Unexpected Shutdown]\"}";
@@ -59,6 +61,8 @@ void mqttSetup() {
 	payload = payloadHeader;
 	payload += "\"[Current gain: " + String(amplifierGain) + "]\"}";
 	mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+	LocalLogs.print(timestamp());
+	LocalLogs.printf("Gain configured at: %d\n", amplifierGain);
 }
 
 void mqttConnect() {
@@ -68,12 +72,16 @@ void mqttConnect() {
 		payload = payloadHeader;
 		payload += "\"[Device Self Reset]\"}";
 		mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+		LocalLogs.print(timestamp());
+		LocalLogs.println("Broker Connection Timed Out");
 		forceReset();
 	}
 	// Attempt to connect
 	mqttclient.disconnect();
 	if (mqttclient.connect(("GEOSCOPE-" + clientId).c_str()))
 	{
+		LocalLogs.print(timestamp());
+		LocalLogs.println("Connected to MQTT Broker");
 		delete attemptTimeout;
 		attemptTimeout = NULL;
 		// Subscribe to topic geoscope/config/gain
@@ -92,6 +100,8 @@ void mqttReportGain(int newGain) {
 		payload += "\"[Set new gain to "+ String(newGain) +"]\"}";
 		mqttclient.publish("geoscope/reply", payload, false, LWMQTT_QOS1);
 		minYield(10);
+		LocalLogs.print(timestamp());
+		LocalLogs.printf("Gain changed to %d\n", amplifierGain);
 }
 
 void mqttSend() {
@@ -140,6 +150,8 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		payload = payloadHeader;
 		payload += "\"[Restart]\"}";
 		mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+		LocalLogs.print(timestamp());
+		LocalLogs.println(" Got MQTT Restart");
 		minYield(10);
 		forceReset();
 	}
@@ -150,7 +162,13 @@ void mqttOnMessage(String & topic, String & in_payload) {
 		mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
 	}
 	else if (topic.substring(0,CONFIG_TOPIC_PREFIX.length()).equalsIgnoreCase(CONFIG_TOPIC_PREFIX)) {
-		cli.feedString(topic.substring(CONFIG_TOPIC_PREFIX.length()) + " " + in_payload);
+		LocalLogs.print(timestamp());
+		LocalLogs.print(" Got MQTT command: \"");
+		LocalLogs.print(topic.substring(CONFIG_TOPIC_PREFIX.length()));
+		LocalLogs.printf("\", with argument length: %d", in_payload.length());
+
+		cli.feedString(topic.substring(CONFIG_TOPIC_PREFIX.length()) +
+				" " + in_payload);
 		//feed the input + payload as a command to the cli (for reconfiguring)
 	}
 }
@@ -187,6 +205,11 @@ void mqttLoad() {
 			}
 		}
 	}
+}
+
+void mqttShutdown() {
+	mqttclient.disconnect();
+	yield();
 }
 
 void mqttSave() {
