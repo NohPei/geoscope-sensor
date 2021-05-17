@@ -28,6 +28,4 @@ extern bool fullfilledBuffer;
 extern unsigned int currentBufferRow;
 extern uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 
-char* timestamp();
-
 #endif

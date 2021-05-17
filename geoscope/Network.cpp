@@ -4,7 +4,7 @@
 
 #include "Network.h"
 #include "Watchdog.h"
-#include "logfile.h"
+#include "cli.h"
 
 
 char SSID[CHAR_BUF_SIZE], PASSWORD[CHAR_BUF_SIZE];
@@ -123,18 +123,17 @@ void initWifiConfig() {
 }
 
 void showWifiConfig() {
-	LocalLogs.print(timestamp());
-	allOutputs.println("## Active Wifi Configuration.");
-	allOutputs.print("SSID: ");
-	allOutputs.println(WiFi.SSID());
-	allOutputs.print("Key: ");
-	allOutputs.println(WiFi.psk());
-	allOutputs.print("IP: ");
-	allOutputs.println(WiFi.localIP());
-	allOutputs.print("Default Gateway: ");
-	allOutputs.println(WiFi.gatewayIP());
-	allOutputs.print("Subnet Mask: ");
-	allOutputs.println(WiFi.subnetMask());
-	allOutputs.print("Primary DNS: ");
-	allOutputs.println(WiFi.dnsIP());
+	cli.println("## Active Wifi Configuration.");
+	cli.print("SSID: ");
+	cli.println(WiFi.SSID());
+	cli.print("Key: ");
+	cli.println(WiFi.psk());
+	cli.print("IP: ");
+	cli.println(WiFi.localIP());
+	cli.print("Default Gateway: ");
+	cli.println(WiFi.gatewayIP());
+	cli.print("Subnet Mask: ");
+	cli.println(WiFi.subnetMask());
+	cli.print("Primary DNS: ");
+	cli.println(WiFi.dnsIP());
 }

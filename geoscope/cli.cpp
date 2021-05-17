@@ -4,7 +4,6 @@
 #include "Network.h"
 #include "MQTTService.h"
 #include "main.h"
-#include "logfile.h"
 
 // #define TRUE_EQUIV_COUNT 5
 // const String TRUE_EQUIV[] = { //strings that will be understood as "true" when setting variables
@@ -394,8 +393,6 @@ bool adc_gain(Commander &cmd) {
 }
 
 bool adc_dump(Commander &cmd) {
-	LocalLogs.print(timestamp());
-	LocalLogs.println("Started Dumping ADC data");
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
 	minYield(2000); //wait a couple seconds for the user to read the info
 	cmd.startStreaming();
@@ -474,8 +471,6 @@ const uint16_t fsCmdCount = sizeof(fsCommands);
 //Main menu and return functions
 
 bool cli_reboot(Commander &cmd) {
-	LocalLogs.print(timestamp());
-	LocalLogs.println("Restart initiated from CLI");
 	forceReset();
 	return 0;
 }
@@ -509,8 +504,6 @@ bool cli_swap(Commander &cmd) {
 	cmd.attachAltPort(cmd.getInputPort());
 	cmd.attachInputPort(oldAlt);
 	cmd.attachOutputPort(oldAlt);
-	LocalLogs.print(timestamp());
-	LocalLogs.println("Swapped CLI stream sources");
 	return 0;
 }
 
