@@ -29,10 +29,15 @@ void ota_startup() {
 	OTA_FS_UPDATE = ArduinoOTA.getCommand() == U_FS;
 	if (OTA_FS_UPDATE) {
 		cli.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
+		mqttNotify("OTA Filesystem Update");
+		yield();
 		LittleFS.end();
 	}
 	else {
 		backup(); //save configurations to FS
+		mqttNotify("OTA Firmware Update");
+		mqttShutdown();
+		yield();
 		cli.println(F("> Updating Firmware over OTA"));
 	}
 }
@@ -40,7 +45,6 @@ void ota_startup() {
 void ota_done() {
 	if (OTA_FS_UPDATE) {
 		LittleFS.begin();
-		backup(); //backup configuration to newly re-written filesystem
 		OTA_FS_UPDATE = false; //unset the flag
 	}
 }
@@ -50,6 +54,7 @@ void ota_error(ota_error_t error) {
 		cli.print(F("<< FS UPDATE ERROR "));
 		cli.print(error);
 		cli.println(F( " >>" ));
+		mqttNotify("OTA FS Update Error");
 		ota_done();
 	}
 	else {

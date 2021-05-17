@@ -25,6 +25,13 @@ unsigned long* attemptTimeout = NULL;
 
 int amplifierGain = 100;
 
+void mqttNotify(String message) {
+	payload = payloadHeader;
+	payload += "\"[" + message + "]\"}";
+	mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+}
+
+
 void mqttSetup() {
 	MQTT_TOPIC = "geoscope/node1/" + clientId;
 	CONFIG_TOPIC_PREFIX = "geoscope/nodeconfig/" + clientId + "/";
@@ -42,9 +49,7 @@ void mqttSetup() {
 		mqttConnect();
 	}
 
-	payload = payloadHeader;
-	payload += "\"[Device Started]\"}";
-	mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+	mqttNotify("Device Started");
 
 	payload = payloadHeader;
 	payload += "\"[Unexpected Shutdown]\"}";
@@ -56,18 +61,20 @@ void mqttSetup() {
 		mqttConnect();
 	}
 	gainLoad();
-	payload = payloadHeader;
-	payload += "\"[Current gain: " + String(amplifierGain) + "]\"}";
-	mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+	mqttNotify("Current gain: " + String(amplifierGain));
+}
+
+void mqttShutdown() {
+	mqttNotify("Shutting Down Gracefully");
+	mqttclient.clearWill();	
+	yield();
 }
 
 void mqttConnect() {
 	if (MQTT_BROKER_TIMEOUT && attemptTimeout && millis() > *attemptTimeout) {
 		//initiates self reset if we're requiring Broker for operation (can be turned off during testing),
 		// 	and there's a set attemptTimeout
-		payload = payloadHeader;
-		payload += "\"[Device Self Reset]\"}";
-		mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+		mqttNotify("Device Self Reset");
 		forceReset();
 	}
 	// Attempt to connect
@@ -137,17 +144,13 @@ void mqttOnMessage(String & topic, String & in_payload) {
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {
 		samplingDisable();
-		payload = payloadHeader;
-		payload += "\"[Restart]\"}";
-		mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+		mqttNotify("Restart");
+		mqttclient.clearWill();
 		minYield(10);
 		forceReset();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/hb")) {
-		payload = payloadHeader;
-		payload += "\"[GEOSCOPE-" + clientId;
-		payload += " working]\"}";
-		mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+		mqttNotify("GEOSCOPE-" + clientId + "working");
 	}
 	else if (topic.substring(0,CONFIG_TOPIC_PREFIX.length()).equalsIgnoreCase(CONFIG_TOPIC_PREFIX)) {
 		cli.feedString(topic.substring(CONFIG_TOPIC_PREFIX.length()) + " " + in_payload);

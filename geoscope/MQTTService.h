@@ -31,6 +31,8 @@ void mqttLoad();
 void mqttSave();
 void mqttOnMessage(String &topic, String &payload);
 void mqttReportGain(int newGain);
+void mqttShutdown();
+void mqttNotify(String message);
 
 #endif
 

@@ -471,6 +471,8 @@ const uint16_t fsCmdCount = sizeof(fsCommands);
 //Main menu and return functions
 
 bool cli_reboot(Commander &cmd) {
+	mqttNotify("CLI Initiated Shutdown");
+	mqttShutdown();
 	forceReset();
 	return 0;
 }
