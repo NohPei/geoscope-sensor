@@ -5,6 +5,7 @@
 #include "Network.h"
 #include "Watchdog.h"
 #include "cli.h"
+#include "MQTTService.h"
 
 
 char SSID[CHAR_BUF_SIZE], PASSWORD[CHAR_BUF_SIZE];
@@ -29,6 +30,9 @@ void setDHCP() {
 	GATEWAY_IP = IPAddress(0,0,0,0);
 	NETMASK = IPAddress(0,0,0,0);
 	DNS = IPAddress(0,0,0,0);
+	MQTT_BROKER_TIMEOUT = 300000;
+		//same as for fallbacks. MQTT timeouts are usually too short
+		// 	for DHCP to run first, so override it to 5 minutes (300 s)
 }
 
 void wifiSetup() {

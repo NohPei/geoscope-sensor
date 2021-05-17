@@ -176,7 +176,8 @@ void mqttLoad() {
 						MQTT_BROKER_PORT = f.parseInt();
 						break;
 					case 't': //Timeout
-						MQTT_BROKER_TIMEOUT = f.parseInt();
+						if (GEOSCOPE_IP.isSet()) //don't load timeouts on DHCP
+							MQTT_BROKER_TIMEOUT = f.parseInt();
 						break;
 					case 'c': //ClientID
 						temp = f.readString();

@@ -79,6 +79,7 @@ bool ping_done(const AsyncPingResponse& response) {
 	if (response.total_recv == 0) { //if we got no responses
 		IPAddress nullIP = IPAddress(0,0,0,0);
 		WiFi.config(nullIP, nullIP, nullIP); //force WiFi back to DHCP
+		MQTT_BROKER_TIMEOUT = 300000; //disable MQTT timeout because DHCP is slower
 		if (WiFi.status() == WL_CONNECTED)
 			WiFi.reconnect(); //and reconnect (or just connect freshly)
 		return false;
