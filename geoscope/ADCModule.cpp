@@ -6,10 +6,8 @@
 #include "cli.h"
 
 // spi cs pin
-const uint8_t adcSSpin = 15; // ADC slave select pin
-const int8_t gain_d0 = D1;
-const int8_t gain_d1 = D2;
-const int8_t gain_d2 = D3;
+const uint8_t adcSSpin = 4; // ADC slave select pin
+const uint8_t potSSpin = 5; // digital pot slave select pin
 
 bool fullfilledBuffer = false;
 unsigned int currentBufferRow = 0;
@@ -19,23 +17,26 @@ volatile uint32_t adcReadableTime_cycles = 0;
 
 const SPISettings adcConfig = SPISettings(0.8e6, MSBFIRST, SPI_MODE0);
 //enale SPI at 800kHz max rate (from MCP3201 datasheet)
+// AD5270 can handle up to 50MHz(!), data clocks in ON falling edge
+const SPISettings potConfig = SPISettings(20e6, MSBFISRT, SPI_MODE2);
 
 void adcSetup() {
 	// SPI Setup
 	SPI.begin();
 	pinMode(adcSSpin,OUTPUT); //enable SS pin for manual operation
+	pinMode(potSSpin, OUTPUT); //''
 
-	// Gain setup
-	pinMode(gain_d0, OUTPUT);
-	pinMode(gain_d1, OUTPUT);
-	pinMode(gain_d2, OUTPUT);
+	digitalWrite(adcSSpin,HIGH); //ensure that SS is disabled (until the interrupt triggers)
+	digitalWrite(potSSpin, HIGH);
+
+	// Digital pot setup
+	setResistorControl();
 	gainLoad();
 	changeAmplifierGain(amplifierGain);
 
 	// TIMER1 ISR Setup
 	timer1_isr_init();
 	samplingEnable();
-	digitalWrite(adcSSpin,HIGH); //ensure that SS is disabled (until the interrupt triggers)
 }
 
 //ADC sampling interrupt handler
@@ -87,52 +88,70 @@ void adcPoll() {
 	}
 }
 
+void setResistorControl() {
+	// I assume this won't interrupt the ADC but 
+	// just in case, at least SPI will be in a clean state
+	digitalWrite(adcSSpin, HIGH);
+	SPI.endTransaction();
+	// ---
+	SPI.beginTransaction(potConfig);
+	digitalWrite(potSSpin, LOW);
+	SPI.transfer(0x1C01); // allow digital adjustment of wiper
+	SPI.endTransaction();
+	digitalWrite(potSSPin, LOW);
+	// ---
+}
+
 void changeAmplifierGain(int val) {
+	static const int commandBase = 0x0400; // top bits to signify gain change command
+	static int gainOut = 0;
 
 	switch (val)
 	{
 	case 0:
-		digitalWrite(gain_d0, LOW);
-		digitalWrite(gain_d1, LOW);
-		digitalWrite(gain_d2, LOW);
+		gainOut = 0x0;
 		break;
 	case 1:
-		digitalWrite(gain_d0, HIGH);
-		digitalWrite(gain_d1, LOW);
-		digitalWrite(gain_d2, LOW);
+		gainOut = 0xA; // 1/1024 Mohms
 		break;
 	case 2:
-		digitalWrite(gain_d0, LOW);
-		digitalWrite(gain_d1, HIGH);
-		digitalWrite(gain_d2, LOW);
+		gainOut = 0x14;
 		break;
 	case 5:
-		digitalWrite(gain_d0, HIGH);
-		digitalWrite(gain_d1, HIGH);
-		digitalWrite(gain_d2, LOW);
+		gainOut = 0x33;
 		break;
+
 	case 10:
-		digitalWrite(gain_d0, LOW);
-		digitalWrite(gain_d1, LOW);
-		digitalWrite(gain_d2, HIGH);
+		gainOut = 0x66;
 		break;
+	
 	case 20:
-		digitalWrite(gain_d0, HIGH);
-		digitalWrite(gain_d1, LOW);
-		digitalWrite(gain_d2, HIGH);
+		gainOut = 0xCC;
 		break;
+	
 	case 50:
-		digitalWrite(gain_d0, LOW);
-		digitalWrite(gain_d1, HIGH);
-		digitalWrite(gain_d2, HIGH);
+		gainOut = 0x200;
 		break;
+	
 	case 100:
 	default:
-		digitalWrite(gain_d0, HIGH);
-		digitalWrite(gain_d1, HIGH);
-		digitalWrite(gain_d2, HIGH);
+		gainOut = 0x3FF;
 		break;
 	}
+
+	// I assume this won't interrupt the ADC but 
+	// just in case, at least SPI will be in a clean state
+	digitalWrite(adcSSpin, HIGH);
+	SPI.endTransaction();
+	// ---
+	val = (val & 0x3ff) | commandBase; // bottom 10 bits for gain
+
+	SPI.beginTransaction(potConfig);
+	digitalWrite(potSSpin, LOW);
+	SPI.transfer(val); 
+	SPI.endTransaction();
+	digitalWrite(potSSPin, LOW);
+	// ---
 
 	gainSave();
 }
