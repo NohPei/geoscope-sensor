@@ -30,7 +30,7 @@ void mqttSend();
 void mqttLoad();
 void mqttSave();
 void mqttOnMessage(String &topic, String &payload);
-void mqttReportGain(int newGain);
+void mqttReportGain(float newGain);
 void mqttShutdown();
 void mqttNotify(String message);
 

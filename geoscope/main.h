@@ -22,7 +22,7 @@
 
 
 
-extern int amplifierGain;
+extern float amplifierGain;
 
 extern bool fullfilledBuffer;
 extern unsigned int currentBufferRow;

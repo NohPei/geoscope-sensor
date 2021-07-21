@@ -20,7 +20,7 @@ void adcSetup();
 void adcPoll();
 void samplingEnable();
 void samplingDisable();
-void changeAmplifierGain(int);
+void changeAmplifierGain(float);
 void gainSave();
 void gainLoad();
 

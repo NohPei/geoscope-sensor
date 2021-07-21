@@ -377,8 +377,8 @@ const uint16_t mqttCmdCount = sizeof(mqttCommands);
 // ADC Submenu
 
 bool adc_gain(Commander &cmd) {
-	int payload;
-	if (cmd.getInt(payload)) {
+	float payload;
+	if (cmd.getFloat(payload)) {
 		amplifierGain = payload;
 		changeAmplifierGain(payload);
 		mqttReportGain(payload);
@@ -386,7 +386,7 @@ bool adc_gain(Commander &cmd) {
 	else {
 		cmd.rewind();
 		cmd.print(F("Gain: "));
-		cmd.println(amplifierGain);
+		cmd.printf("%.3f\n", amplifierGain);
 	}
 	return 0;
 
@@ -400,7 +400,7 @@ bool adc_dump(Commander &cmd) {
 }
 
 const commandList_t adcCommands[] = {
-	{"gain", adc_gain, "Get/Set Amplifier gain (0,1,2,5,10,20,50,100)"},
+	{"gain", adc_gain, "Get/Set Amplifier gain (min. 1, max ~834, rounds to nearest valid value)"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
 	{"exit", sub_exit, "Return to main prompt"}
 };

@@ -23,7 +23,7 @@ MQTTClient mqttclient(MQTT_PACKAGE_SIZE);
 
 unsigned long* attemptTimeout = NULL;
 
-int amplifierGain = 100;
+float amplifierGain = 100;
 
 void mqttNotify(String message) {
 	payload = payloadHeader;
@@ -94,9 +94,10 @@ void mqttConnect() {
 	}
 }
 
-void mqttReportGain(int newGain) {
+void mqttReportGain(float newGain) {
 		payload = payloadHeader;
-		payload += "\"[Set new gain to "+ String(newGain) +"]\"}";
+		payload += "\"[Set new gain to "+ String(newGain, 3) +"]\"}";
+			//only 3 decimal places needed between two smallest steps
 		mqttclient.publish("geoscope/reply", payload, false, LWMQTT_QOS1);
 		minYield(10);
 }
@@ -137,7 +138,7 @@ void mqttOnMessage(String & topic, String & in_payload) {
 	if (topic.equalsIgnoreCase("geoscope/config/gain")) {
 		samplingDisable();
 		// Set new amplifier gain value
-		amplifierGain = in_payload.toInt();
+		amplifierGain = in_payload.toFloat();
 		changeAmplifierGain(amplifierGain);
 		mqttReportGain(amplifierGain);
 		samplingEnable();
