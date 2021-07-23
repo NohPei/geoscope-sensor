@@ -4,6 +4,7 @@
 #include "Network.h"
 #include "MQTTService.h"
 #include "main.h"
+#include "ADCModule.h"
 
 // #define TRUE_EQUIV_COUNT 5
 // const String TRUE_EQUIV[] = { //strings that will be understood as "true" when setting variables
@@ -218,7 +219,7 @@ const commandList_t netCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t netCmdCount = sizeof(netCommands);
+const uint16_t netCmdCount = 11;
 
 
 // MQTT Submenu
@@ -371,7 +372,7 @@ const commandList_t mqttCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t mqttCmdCount = sizeof(mqttCommands);
+const uint16_t mqttCmdCount = 12;
 
 
 // ADC Submenu
@@ -392,6 +393,52 @@ bool adc_gain(Commander &cmd) {
 
 }
 
+bool adc_pot(Commander &cmd) {
+	String cmdString;
+	if (cmd.getString(cmdString)) {
+		for (AD5270_Command_t command = NOOP; command <
+				AD5270_CmdCount; command++) {
+			if (strncmp_P(cmdString.c_str(),
+						AD5270_CmdString[command],
+						cmdString.length())) {
+				uint16_t cmd_data;
+				if (!cmd.getInt(cmd_data))
+					cmd_data = 0x0000;
+
+				samplingDisable(); //have to shut down sampling before talking to the pot
+				switch (command) {
+					case RDAC_READ:
+					case PROM_READ:
+					case PROM_READ_CURR:
+						cmd.println(gainPot.read(command, cmd_data), DEC);
+					case CTRL_READ:
+						cmd.println(gainPot.read(command, cmd_data), BIN);
+					case NOOP:
+					case RDAC_WRITE:
+					case RDAC_STORE:
+					case RESET:
+					case CTRL_WRITE:
+					case SHUTDOWN:
+					default:
+						gainPot.write(command, cmd_data);
+				}
+				samplingEnable();
+				return 0; //return after writing the command
+			}
+		}
+	}
+	//if no command or invalid command
+	//print valid ADC command list
+	cmd.println(F("ADC Commands: "));
+	for (int index = 0; index < AD5270_CmdCount; index++) {
+		cmd.println(FPSTR(AD5270_CmdString[index]));
+	}
+
+	return 0;
+	
+
+}
+
 bool adc_dump(Commander &cmd) {
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
 	minYield(2000); //wait a couple seconds for the user to read the info
@@ -402,10 +449,12 @@ bool adc_dump(Commander &cmd) {
 const commandList_t adcCommands[] = {
 	{"gain", adc_gain, "Get/Set Amplifier gain (min. 1, max ~834, rounds to nearest valid value)"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
+	{"pot", adc_pot, "Send command to potentiometer (syntax: command 0x{DATA})"},
+	{"res", adc_pot, "Alias for `pot`"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t adcCmdCount = sizeof(adcCommands);
+const uint16_t adcCmdCount = 5;
 
 
 // File System Commands
@@ -465,7 +514,7 @@ const commandList_t fsCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t fsCmdCount = sizeof(fsCommands);
+const uint16_t fsCmdCount = 7;
 
 
 //Main menu and return functions
@@ -527,7 +576,7 @@ const commandList_t mainCommands[] = {
 	{"reboot", cli_reboot, "Restart this sensor"}
 };
 
-const uint16_t mainCmdCount = sizeof(mainCommands);
+const uint16_t mainCmdCount = 6;
 
 bool sub_exit(Commander &cmd) {
 	cmd.transferBack(mainCommands, mainCmdCount, "CMD");

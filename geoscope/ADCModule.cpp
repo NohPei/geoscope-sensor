@@ -4,18 +4,20 @@
 
 #include "ADCModule.h"
 #include "cli.h"
-#include "AD5270.h"
 
-// spi cs pin
-const uint8_t adcSSpin = 4; // ADC slave select pin
-const uint8_t potSSpin = 5; // digital pot slave select pin
 
 bool fullfilledBuffer = false;
 unsigned int currentBufferRow = 0;
 unsigned int currentBufferPosition = 0;
 uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 volatile uint32_t adcReadableTime_cycles = 0;
+
+//SPI Chip Select pins
+#define adcSSpin 4 // ADC slave select pin
+#define potSSpin 5 // digital pot slave select pin
+
 AD5270 gainPot(potSSpin);
+
 
 const SPISettings adcConfig = SPISettings(0.8e6, MSBFIRST, SPI_MODE0);
 //enale SPI at 800kHz max rate (from MCP3201 datasheet)
@@ -97,6 +99,9 @@ void changeAmplifierGain(float val) {
 		amplifierGain = 1;
 	}
 	else {
+		gainPot.shutdown(false);
+		//make sure the resistor is enabled
+
 		// calculate the nearest gain resistor value
 		potValue = round(1024/(val-1));
 		if (potValue >= 1024) {
@@ -107,8 +112,6 @@ void changeAmplifierGain(float val) {
 		//correct the stored gain value to the actual set value
 		
 		gainPot.write(RDAC_WRITE, potValue);
-		gainPot.shutdown(false);
-		//make sure the resistor is enabled, too.
 	}
 
 	gainSave();

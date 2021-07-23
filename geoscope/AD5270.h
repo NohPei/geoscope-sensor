@@ -2,7 +2,7 @@
  * AD5270 Arduino SPI Driver (Headers)
  * Author: Jesse R Codling
  * Created: 14 Jul 2021
- * Last Modified: 20 Jul 2021
+ * Last Modified: 23 Jul 2021
  */
 
 #ifndef _AD5270_H
@@ -25,9 +25,23 @@ enum AD5270_Command {
 	CTRL_WRITE 	= 	0x7,
 	CTRL_READ 	= 	0x8,
 	SHUTDOWN 	= 	0x9
-
 };
 typedef uint8_t AD5270_Command_t;
+
+static const char* AD5270_CmdString[] = {
+	"NOOP",
+	"RDAC_WRITE",
+	"RDAC_READ",
+	"RDAC_STORE",
+	"RESET",
+	"PROM_READ",
+	"PROM_READ_CURR",
+	"CTRL_WRITE",
+	"CTRL_READ",
+	"SHUTDOWN"
+};
+
+static const uint8_t AD5270_CmdCount = 10;
 
 class AD5270
 {
@@ -41,7 +55,7 @@ class AD5270
 	private:
 		uint8_t pin;
 		// AD5270 can handle up to 50MHz(!), data clocks in ON falling edge
-		const SPISettings SPIConfig = SPISettings(20e6, MSBFIRST, SPI_MODE2);
+		const SPISettings SPIConfig = SPISettings(20e6, MSBFIRST, SPI_MODE1);
 
 
 };
