@@ -219,7 +219,7 @@ const commandList_t netCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t netCmdCount = 11;
+const uint16_t netCmdCount = sizeof(netCommands);
 
 
 // MQTT Submenu
@@ -372,7 +372,7 @@ const commandList_t mqttCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t mqttCmdCount = 12;
+const uint16_t mqttCmdCount = sizeof(mqttCommands);
 
 
 // ADC Submenu
@@ -447,7 +447,7 @@ const commandList_t adcCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t adcCmdCount = 5;
+const uint16_t adcCmdCount = sizeof(adcCommands);
 
 
 // File System Commands
@@ -507,7 +507,7 @@ const commandList_t fsCommands[] = {
 	{"exit", sub_exit, "Return to main prompt"}
 };
 
-const uint16_t fsCmdCount = 7;
+const uint16_t fsCmdCount = sizeof(fsCommands);
 
 
 //Main menu and return functions
@@ -569,7 +569,7 @@ const commandList_t mainCommands[] = {
 	{"reboot", cli_reboot, "Restart this sensor"}
 };
 
-const uint16_t mainCmdCount = 6;
+const uint16_t mainCmdCount = sizeof(mainCommands);
 
 bool sub_exit(Commander &cmd) {
 	cmd.transferBack(mainCommands, mainCmdCount, "CMD");
