@@ -396,7 +396,7 @@ bool adc_gain(Commander &cmd) {
 bool adc_pot(Commander &cmd) {
 	String cmdString;
 	if (cmd.getString(cmdString)) {
-		for (AD5270_Command_t command = NOOP; command <
+		for (uint8_t command = 0; command <
 				AD5270_CmdCount; command++) {
 			if (strncmp_P(cmdString.c_str(),
 						AD5270_CmdString[command],
@@ -406,22 +406,15 @@ bool adc_pot(Commander &cmd) {
 					cmd_data = 0x0000;
 
 				samplingDisable(); //have to shut down sampling before talking to the pot
-				switch (command) {
-					case RDAC_READ:
-					case PROM_READ:
-					case PROM_READ_CURR:
-						cmd.println(gainPot.read(command, cmd_data), DEC);
-					case CTRL_READ:
-						cmd.println(gainPot.read(command, cmd_data), BIN);
-					case NOOP:
-					case RDAC_WRITE:
-					case RDAC_STORE:
-					case RESET:
-					case CTRL_WRITE:
-					case SHUTDOWN:
-					default:
-						gainPot.write(command, cmd_data);
-				}
+				uint16_t retData = gainPot->read(command, cmd_data);
+
+				cmd.println("Returned: ");
+				cmd.print("BIN: ");
+				cmd.println((uint8_t)retData, BIN);
+				cmd.print("HEX: ");
+				cmd.println(retData, HEX);
+				cmd.print("DEC: ");
+				cmd.println(retData, DEC);
 				samplingEnable();
 				return 0; //return after writing the command
 			}

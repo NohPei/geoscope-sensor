@@ -2,7 +2,7 @@
  * AD5270 Arduino SPI Driver (Headers)
  * Author: Jesse R Codling
  * Created: 14 Jul 2021
- * Last Modified: 23 Jul 2021
+ * Last Modified: 27 Jul 2021
  */
 
 #ifndef _AD5270_H
@@ -55,7 +55,9 @@ class AD5270
 	private:
 		uint8_t pin;
 		// AD5270 can handle up to 50MHz(!), data clocks in ON falling edge
-		const SPISettings SPIConfig = SPISettings(20e6, MSBFIRST, SPI_MODE1);
+		// 	The datasheet lies, or the ESP8266 isn't switching clocks properly.
+		// 	Use the same SPI frequency as everything else.
+		const SPISettings SPIConfig = SPISettings(800e3, MSBFIRST, SPI_MODE1);
 
 
 };
