@@ -11,12 +11,12 @@
 
 #include "main.h"
 #include <SPI.h>
-#include "AD5270.h"
+#include "MCP41XXX.h"
 
 #define TIMER1_WRITE_TIME 10000 //5MHz/10000 = 500Hz
 #define ADC_HOLD_TIME_CYCLES 8 //from MCP3201 datasheet: t_SUCS >= 100ns
 
-extern AD5270* gainPot;
+extern MCP41xxx* gainPot;
 
 void adcSetup();
 void adcPoll();

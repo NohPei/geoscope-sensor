@@ -393,45 +393,6 @@ bool adc_gain(Commander &cmd) {
 
 }
 
-bool adc_pot(Commander &cmd) {
-	String cmdString;
-	if (cmd.getString(cmdString)) {
-		for (uint8_t command = 0; command <
-				AD5270_CmdCount; command++) {
-			if (strncmp_P(cmdString.c_str(),
-						AD5270_CmdString[command],
-						cmdString.length())) {
-				uint16_t cmd_data;
-				if (!cmd.getInt(cmd_data))
-					cmd_data = 0x0000;
-
-				samplingDisable(); //have to shut down sampling before talking to the pot
-				uint16_t retData = gainPot->read(command, cmd_data);
-
-				cmd.println("Returned: ");
-				cmd.print("BIN: ");
-				cmd.println((uint8_t)retData, BIN);
-				cmd.print("HEX: ");
-				cmd.println(retData, HEX);
-				cmd.print("DEC: ");
-				cmd.println(retData, DEC);
-				samplingEnable();
-				return 0; //return after writing the command
-			}
-		}
-	}
-	//if no command or invalid command
-	//print valid ADC command list
-	cmd.println(F("ADC Commands: "));
-	for (int index = 0; index < AD5270_CmdCount; index++) {
-		cmd.println(FPSTR(AD5270_CmdString[index]));
-	}
-
-	return 0;
-	
-
-}
-
 bool adc_dump(Commander &cmd) {
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
 	minYield(2000); //wait a couple seconds for the user to read the info
@@ -442,8 +403,6 @@ bool adc_dump(Commander &cmd) {
 const commandList_t adcCommands[] = {
 	{"gain", adc_gain, "Get/Set Amplifier gain (min. 1, max ~834, rounds to nearest valid value)"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
-	{"pot", adc_pot, "Send command to potentiometer (syntax: command 0x{DATA})"},
-	{"res", adc_pot, "Alias for `pot`"},
 	{"exit", sub_exit, "Return to main prompt"}
 };
 

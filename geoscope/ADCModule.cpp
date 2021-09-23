@@ -16,7 +16,7 @@ volatile uint32_t adcReadableTime_cycles = 0;
 #define adcSSpin 4 // ADC slave select pin
 #define potSSpin 5 // digital pot slave select pin
 
-AD5270* gainPot = NULL;
+MCP41xxx* gainPot = NULL;
 
 
 const SPISettings adcConfig = SPISettings(0.8e6, MSBFIRST, SPI_MODE0);
@@ -29,7 +29,7 @@ void adcSetup() {
 	pinMode(adcSSpin,OUTPUT); //enable SS pin for manual operation
 	digitalWrite(adcSSpin,HIGH); //ensure that SS is disabled (until the interrupt triggers)
 
-	gainPot = new AD5270(potSSpin);
+	gainPot = new MCP41xxx(potSSpin);
 
 	// Digital pot setup
 	gainLoad();
@@ -74,7 +74,7 @@ void adcPoll() {
 		if (cli.isStreaming()) {
 			cli.println(rawVal,DEC);
 		}
-		
+
 
 		if (currentBufferPosition == RAW_COL_BUFFER_SIZE) { //check for filled buffers
 			fullfilledBuffer = true;
@@ -93,26 +93,24 @@ void adcPoll() {
 void changeAmplifierGain(float val) {
 	amplifierGain = val;
 	static uint16_t potValue = 0;
+	static const unsigned int potSteps = UINT8_MAX;
 
 	if (val <= 1) {
-		gainPot->shutdown(true);
+		gainPot->shutdown();
 		//minimum gain (1) comes by shutting down the 
 		amplifierGain = 1;
 	}
 	else {
-		gainPot->shutdown(false);
-		//make sure the resistor is enabled
 
 		// calculate the nearest gain resistor value
-		potValue = round(1024/(val-1));
-		if (potValue >= 1024) {
-			potValue = 1023;
-			//the max input value is 2^10-1
+		potValue = round(potSteps-(potSteps/val));
+		if (potValue >= potSteps) {
+			potValue = potSteps-1;
 		}
-		amplifierGain = 1 + 1024.0/potValue;
+		amplifierGain = 1 + potValue/(potSteps-potValue);
 		//correct the stored gain value to the actual set value
-		
-		gainPot->write(RDAC_WRITE, potValue);
+
+		gainPot->write(potValue);
 	}
 
 	gainSave();
