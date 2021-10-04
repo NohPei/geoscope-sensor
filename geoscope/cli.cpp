@@ -393,6 +393,21 @@ bool adc_gain(Commander &cmd) {
 
 }
 
+bool adc_ratio(Commander &cmd) {
+	float payload;
+	if (cmd.getFloat(payload)) {
+		gainShiftRatio = payload;
+		changeAmplifierGain(amplifierGain);
+		mqttReportGain(amplifierGain);
+	}
+	else {
+		cmd.rewind();
+		cmd.print(F("Gain Shift Ratio (R16/R_pot): "));
+		cmd.printf("%f\n", gainShiftRatio);
+	}
+	return 0;
+}
+
 bool adc_dump(Commander &cmd) {
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
 	minYield(2000); //wait a couple seconds for the user to read the info
@@ -401,7 +416,11 @@ bool adc_dump(Commander &cmd) {
 }
 
 const commandList_t adcCommands[] = {
-	{"gain", adc_gain, "Get/Set Amplifier gain (min. 1, max ~834, rounds to nearest valid value)"},
+	{"gain", adc_gain, "Get/Set Amplifier gain (min. 1, max >80, rounds to nearest valid value)"},
+	{"ratio", adc_ratio, "Get/Set Amplifier gain shifting ration (R16/R_pot)"},
+	{"shift", adc_ratio, "Alias for `ratio`"},
+	{"resistor", adc_ratio, "Alias for `ratio`"},
+	{"res", adc_ratio, "Alias for `ratio`"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
 	{"exit", sub_exit, "Return to main prompt"}
 };

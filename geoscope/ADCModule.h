@@ -17,6 +17,7 @@
 #define ADC_HOLD_TIME_CYCLES 8 //from MCP3201 datasheet: t_SUCS >= 100ns
 
 extern MCP41xxx* gainPot;
+extern double gainShiftRatio;
 
 void adcSetup();
 void adcPoll();

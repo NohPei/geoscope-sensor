@@ -61,7 +61,7 @@ void mqttSetup() {
 		mqttConnect();
 	}
 	gainLoad();
-	mqttNotify("Current gain: " + String(amplifierGain));
+	mqttNotify("Current gain: " + String(amplifierGain, 3));
 }
 
 void mqttShutdown() {
@@ -71,12 +71,6 @@ void mqttShutdown() {
 }
 
 void mqttConnect() {
-	if (MQTT_BROKER_TIMEOUT && attemptTimeout && millis() > *attemptTimeout) {
-		//initiates self reset if we're requiring Broker for operation (can be turned off during testing),
-		// 	and there's a set attemptTimeout
-		mqttNotify("Device Self Reset");
-		forceReset();
-	}
 	// Attempt to connect
 	mqttclient.disconnect();
 	if (mqttclient.connect(("GEOSCOPE-" + clientId).c_str()))
@@ -88,9 +82,11 @@ void mqttConnect() {
 		mqttclient.subscribe("geoscope/restart",LWMQTT_QOS1);
 		mqttclient.subscribe(CONFIG_TOPIC_PREFIX + "#", LWMQTT_QOS1);
 	}
-	else
-	{
-		minYield(20);
+	else if (MQTT_BROKER_TIMEOUT && attemptTimeout && millis() > *attemptTimeout) {
+		//initiates self reset if we're requiring Broker for operation (can be turned off during testing),
+		// 	and there's a set attemptTimeout
+		mqttNotify("Device Self Reset");
+		forceReset();
 	}
 }
 
@@ -119,7 +115,7 @@ void mqttSend() {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
 		}
 		payload.remove(payload.length()-1); //trash that last ','
-		payload += "],\"gain\":" + String(amplifierGain) + "}";
+		payload += "],\"gain\":" + String(amplifierGain, 3) + "}";
 
 		if (!mqttclient.connected()) {
 			if (!attemptTimeout)
@@ -145,9 +141,8 @@ void mqttOnMessage(String & topic, String & in_payload) {
 	}
 	else if (topic.equalsIgnoreCase("geoscope/restart")) {
 		samplingDisable();
-		mqttNotify("Restart");
-		mqttclient.clearWill();
-		minYield(10);
+		mqttNotify("MQTT Initiated Restart");
+		mqttShutdown();
 		forceReset();
 	}
 	else if (topic.equalsIgnoreCase("geoscope/hb")) {

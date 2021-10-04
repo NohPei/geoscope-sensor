@@ -17,6 +17,7 @@ volatile uint32_t adcReadableTime_cycles = 0;
 #define potSSpin 5 // digital pot slave select pin
 
 MCP41xxx* gainPot = NULL;
+double gainShiftRatio = 0;
 
 
 const SPISettings adcConfig = SPISettings(0.8e6, MSBFIRST, SPI_MODE0);
@@ -93,21 +94,22 @@ void adcPoll() {
 void changeAmplifierGain(float val) {
 	amplifierGain = val;
 	static uint16_t potValue = 0;
-	static const unsigned int potSteps = UINT8_MAX;
+	static const uint16_t potSteps = UINT8_MAX;
 
-	if (val <= 1) {
+	if (val <= 1.0) {
 		gainPot->shutdown();
-		//minimum gain (1) comes by shutting down the 
+		//minimum gain (1) comes by shutting down the pot
 		amplifierGain = 1;
 	}
 	else {
 
 		// calculate the nearest gain resistor value
-		potValue = round(potSteps-(potSteps/val));
+		potValue = round(potSteps * (1-(1+gainShiftRatio)/val));
 		if (potValue >= potSteps) {
 			potValue = potSteps-1;
 		}
-		amplifierGain = 1 + potValue/(potSteps-potValue);
+		double gainDivisor = potSteps-potValue;
+		amplifierGain = 1.0 + potValue/gainDivisor + potSteps*gainShiftRatio/gainDivisor;
 		//correct the stored gain value to the actual set value
 
 		gainPot->write(potValue);
@@ -123,10 +125,19 @@ void gainLoad() {
 	else
 		amplifierGain = storage.readString().toFloat();
 	storage.close();
+
+	storage = LittleFS.open("/config/rPotRatio", "r");
+	if (storage)
+		gainShiftRatio = storage.readString().toFloat();
+	storage.close();
 }
 
 void gainSave() {
 	File storage = LittleFS.open("/config/gain", "w");
 	storage.printf("%.3f\n", amplifierGain);
+	storage.close();
+
+	storage = LittleFS.open("/config/rPotRatio", "w");
+	storage.printf("%f\n", gainShiftRatio);
 	storage.close();
 }
