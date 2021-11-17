@@ -11,6 +11,7 @@
 char SSID[CHAR_BUF_SIZE], PASSWORD[CHAR_BUF_SIZE];
 IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP, DNS;
 
+//TODO: why aren't we using this? Do we need this? Or only the other version?
 void networkSetup() {
 	yield();
 	WiFi.softAPdisconnect(true);
@@ -44,6 +45,7 @@ void wifiSetup() {
 	yield();
 }
 
+//TODO: definitely scrap webdav, it can break this with invalid files!
 void loadWifiConfig() {
 	if (!(GEOSCOPE_IP.isSet() && GATEWAY_IP.isSet() && NETMASK.isSet() && strlen(SSID) > 0)) {
 		//if there is no current config

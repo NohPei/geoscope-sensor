@@ -115,6 +115,7 @@ void changeAmplifierGain(float val) {
 		amplifierGain = 1.0 + potValue/gainDivisor + potSteps*gainShiftRatio/gainDivisor;
 		//correct the stored gain value to the actual set value
 
+		//TODO: should this be where sampling is disabled for SPI safety?
 		gainPot->write(potValue);
 	}
 
