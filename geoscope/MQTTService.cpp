@@ -4,15 +4,19 @@
 
 
 #include "MQTTService.h"
+//TODO: should we move to a more standard MQTT library? If so, when? Either beween cycles or after second cycle.
 #include <ArduinoOTA.h>
 #include "Network.h"
 #include "cli.h"
+
+//TODO: Should we switch the MQTT message format to MessagePack or similar?
 
 char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
 int MQTT_BROKER_TIMEOUT = 30000; //timeout without reaching the broker before rebooting the sensor
 
-String clientId = "152";
+//TODO: what should the default ID be?
+String clientId = "UNNAMED";
 String 	MQTT_TOPIC,
 	payloadHeader,
 	payload,
@@ -35,6 +39,7 @@ void mqttNotify(String message) {
 void mqttSetup() {
 	MQTT_TOPIC = "geoscope/node1/" + clientId;
 	CONFIG_TOPIC_PREFIX = "geoscope/nodeconfig/" + clientId + "/";
+	//TODO: leave manual JSON until we swtich the msgpack. Prep to do this beween farrowing cycles.
 	payloadHeader = "{\"uuid\":\"GEOSCOPE-" + clientId + "\",\"data\":";
 	WiFi.hostname("GEOSCOPE-"+clientId);
 	ArduinoOTA.setHostname(("GEOSCOPE-"+clientId).c_str());
@@ -52,20 +57,26 @@ void mqttSetup() {
 	mqttNotify("Device Started");
 
 	payload = payloadHeader;
+	//TODO: maybe set the will to something like "Unexpected MQTT Disconnected"
+	// 		Votes for Will: 1	No Will: 3
+	// 		So, let's remove it. Save it for the debug.
 	payload += "\"[Unexpected Shutdown]\"}";
 	mqttclient.setWill("geoscope/reply", payload.c_str(), true, LWMQTT_QOS1);
 
+	//TODO: Why do we do this twice? Take this out?
 	if (!mqttclient.connected()) {
 		if (!attemptTimeout)
 			attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
 		mqttConnect();
 	}
+	//TODO: Why are we loading gain here? We just need to set up ADC first.
 	gainLoad();
 	mqttNotify("Current gain: " + String(amplifierGain, 3));
 }
 
 void mqttShutdown() {
 	mqttNotify("Shutting Down Gracefully");
+	//TODO: I don't think that clearWill() is working. Whose fault is it?
 	mqttclient.clearWill();	
 	yield();
 }
@@ -117,6 +128,7 @@ void mqttSend() {
 		payload.remove(payload.length()-1); //trash that last ','
 		payload += "],\"gain\":" + String(amplifierGain, 3) + "}";
 
+		//TODO: can we move this to the main loop? Then we only need one connection attempt during startup
 		if (!mqttclient.connected()) {
 			if (!attemptTimeout)
 				attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
