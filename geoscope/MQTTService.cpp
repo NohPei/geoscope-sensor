@@ -15,7 +15,6 @@ char MQTT_BROKER_IP[CHAR_BUF_SIZE] = "192.168.60.100";
 int MQTT_BROKER_PORT = 18884;
 int MQTT_BROKER_TIMEOUT = 30000; //timeout without reaching the broker before rebooting the sensor
 
-//TODO: what should the default ID be?
 String clientId = "UNNAMED";
 String 	MQTT_TOPIC,
 	payloadHeader,
@@ -42,7 +41,6 @@ void mqttSetup() {
 	//TODO: leave manual JSON until we swtich the msgpack. Prep to do this beween farrowing cycles.
 	payloadHeader = "{\"uuid\":\"GEOSCOPE-" + clientId + "\",\"data\":";
 	WiFi.hostname("GEOSCOPE-"+clientId);
-	ArduinoOTA.setHostname(("GEOSCOPE-"+clientId).c_str());
 
 
 	mqttclient.begin(MQTT_BROKER_IP, MQTT_BROKER_PORT, wifiClient);
@@ -57,20 +55,12 @@ void mqttSetup() {
 	mqttNotify("Device Started");
 
 	payload = payloadHeader;
-	//TODO: maybe set the will to something like "Unexpected MQTT Disconnected"
+	//TODO: possbily remove the Will altogether since it's been confusing
 	// 		Votes for Will: 1	No Will: 3
 	// 		So, let's remove it. Save it for the debug.
-	payload += "\"[Unexpected Shutdown]\"}";
+	payload += "\"[Unexpected MQTT Disconnect]\"}";
 	mqttclient.setWill("geoscope/reply", payload.c_str(), true, LWMQTT_QOS1);
 
-	//TODO: Why do we do this twice? Take this out?
-	if (!mqttclient.connected()) {
-		if (!attemptTimeout)
-			attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
-		mqttConnect();
-	}
-	//TODO: Why are we loading gain here? We just need to set up ADC first.
-	gainLoad();
 	mqttNotify("Current gain: " + String(amplifierGain, 3));
 }
 
@@ -110,6 +100,13 @@ void mqttReportGain(float newGain) {
 }
 
 void mqttSend() {
+
+	if (!mqttclient.connected()) {
+		if (!attemptTimeout)
+			attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
+		mqttConnect();
+	}
+
 	if (fullfilledBuffer) {
 		int buffer_row = 0;
 		if (currentBufferRow == 0) {
@@ -127,13 +124,6 @@ void mqttSend() {
 		}
 		payload.remove(payload.length()-1); //trash that last ','
 		payload += "],\"gain\":" + String(amplifierGain, 3) + "}";
-
-		//TODO: can we move this to the main loop? Then we only need one connection attempt during startup
-		if (!mqttclient.connected()) {
-			if (!attemptTimeout)
-				attemptTimeout = new unsigned long(millis() +  MQTT_BROKER_TIMEOUT);
-			mqttConnect();
-		}
 
 		mqttclient.publish(MQTT_TOPIC, payload, false, LWMQTT_QOS0);
 	}
