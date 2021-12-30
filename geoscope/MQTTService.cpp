@@ -4,8 +4,14 @@
 
 
 #include "MQTTService.h"
+
+#define MQTT_MAX_PACKET_SIZE 15000
+#define MQTT_MAX_TRANSFER_SIZE WIFICLIENT_MAX_PACKET_SIZE
+#include <PubSubClient.h>
 //TODO: should we move to a more standard MQTT library? If so, when? Either beween cycles or after second cycle.
-#include <ArduinoOTA.h>
+
+#include <string.h>
+#include <strings.h>
 #include "Network.h"
 #include "cli.h"
 
@@ -22,7 +28,7 @@ String 	MQTT_TOPIC,
 	CONFIG_TOPIC_PREFIX;
 
 WiFiClient wifiClient;
-MQTTClient mqttclient(MQTT_PACKAGE_SIZE);
+PubSubClient mqttclient(wifiClient);
 
 unsigned long* attemptTimeout = NULL;
 
@@ -31,8 +37,40 @@ float amplifierGain = 100;
 void mqttNotify(String message) {
 	payload = payloadHeader;
 	payload += "\"[" + message + "]\"}";
-	mqttclient.publish("geoscope/reply", payload, true, LWMQTT_QOS1);
+	mqttclient.publish("geoscope/reply", payload.c_str());
+	yield();
 }
+
+void mqttMessageHandler(char* topic, byte* payload, unsigned int len) {
+	if (strcasecmp_P(topic, PSTR("geoscope/config/gain")) == 0) {
+		samplingDisable();
+		// Set new amplifier gain value
+		payload[len-1] = '\0'; //ensures there's a null terminator
+		amplifierGain = atof((char*)payload);
+		changeAmplifierGain(amplifierGain);
+		mqttReportGain(amplifierGain);
+		samplingEnable();
+	}
+	else if (strcasecmp_P(topic, PSTR("geoscope/restart")) == 0) {
+		samplingDisable();
+		mqttNotify("MQTT Initiated Restart");
+		mqttShutdown();
+		forceReset();
+	}
+	else if (strcasecmp_P(topic, PSTR("geoscope/hb")) == 0) {
+		mqttNotify("GEOSCOPE-" + clientId + "working");
+	}
+	else if (strncasecmp(topic, CONFIG_TOPIC_PREFIX.c_str(), CONFIG_TOPIC_PREFIX.length()) == 0) {
+		char cmdbuf[CHAR_BUF_SIZE];
+		strncpy(cmdbuf, topic+CONFIG_TOPIC_PREFIX.length(), CHAR_BUF_SIZE);
+		strcat(cmdbuf, " ");
+		strncat(cmdbuf, (char*)payload, len);
+
+		cli.feedString(cmdbuf);
+		//feed the input + payload as a command to the cli (for reconfiguring)
+	}
+}
+
 
 
 void mqttSetup() {
@@ -43,8 +81,8 @@ void mqttSetup() {
 	WiFi.hostname("GEOSCOPE-"+clientId);
 
 
-	mqttclient.begin(MQTT_BROKER_IP, MQTT_BROKER_PORT, wifiClient);
-	mqttclient.onMessage(mqttOnMessage);
+	mqttclient.setCallback(mqttMessageHandler);
+	mqttclient.setBufferSize(MQTT_MAX_PACKET_SIZE);
 
 	if (!mqttclient.connected()) {
 		if (!attemptTimeout)
@@ -52,51 +90,37 @@ void mqttSetup() {
 		mqttConnect();
 	}
 
-	mqttNotify("Device Started");
-
-	payload = payloadHeader;
-	//TODO: possbily remove the Will altogether since it's been confusing
-	// 		Votes for Will: 1	No Will: 3
-	// 		So, let's remove it. Save it for the debug.
-	payload += "\"[Unexpected MQTT Disconnect]\"}";
-	mqttclient.setWill("geoscope/reply", payload.c_str(), true, LWMQTT_QOS1);
-
-	mqttNotify("Current gain: " + String(amplifierGain, 3));
+	mqttNotify(F("Current gain: ") + String(amplifierGain, 3));
 }
 
 void mqttShutdown() {
-	mqttNotify("Shutting Down Gracefully");
-	//TODO: I don't think that clearWill() is working. Whose fault is it?
-	mqttclient.clearWill();	
+	mqttNotify(F("Shutting Down Gracefully"));
 	yield();
 }
 
 void mqttConnect() {
 	// Attempt to connect
-	mqttclient.disconnect();
+	mqttclient.setServer(MQTT_BROKER_IP, MQTT_BROKER_PORT);
 	if (mqttclient.connect(("GEOSCOPE-" + clientId).c_str()))
 	{
 		delete attemptTimeout;
 		attemptTimeout = NULL;
 		// Subscribe to topic geoscope/config/gain
-		mqttclient.subscribe("geoscope/config/gain", LWMQTT_QOS1);
-		mqttclient.subscribe("geoscope/restart",LWMQTT_QOS1);
-		mqttclient.subscribe(CONFIG_TOPIC_PREFIX + "#", LWMQTT_QOS1);
+		mqttclient.subscribe("geoscope/config/gain", 1);
+		mqttclient.subscribe("geoscope/restart", 1);
+		mqttclient.subscribe((CONFIG_TOPIC_PREFIX + "#").c_str(), 1);
 	}
 	else if (MQTT_BROKER_TIMEOUT && attemptTimeout && millis() > *attemptTimeout) {
 		//initiates self reset if we're requiring Broker for operation (can be turned off during testing),
 		// 	and there's a set attemptTimeout
-		mqttNotify("Device Self Reset");
+		mqttNotify(F("Device Self Reset"));
 		forceReset();
 	}
 }
 
 void mqttReportGain(float newGain) {
-		payload = payloadHeader;
-		payload += "\"[Set new gain to "+ String(newGain, 3) +"]\"}";
-			//only 3 decimal places needed between two smallest steps
-		mqttclient.publish("geoscope/reply", payload, false, LWMQTT_QOS1);
-		minYield(10);
+		mqttNotify(F("Set new gain to ") + String(newGain, 3));
+		//only 3 decimal places needed between two smallest steps
 }
 
 void mqttSend() {
@@ -125,35 +149,11 @@ void mqttSend() {
 		payload.remove(payload.length()-1); //trash that last ','
 		payload += "],\"gain\":" + String(amplifierGain, 3) + "}";
 
-		mqttclient.publish(MQTT_TOPIC, payload, false, LWMQTT_QOS0);
+		mqttclient.publish(MQTT_TOPIC.c_str() , payload.c_str());
 	}
 
 	mqttclient.loop();
 	yield();
-}
-
-void mqttOnMessage(String & topic, String & in_payload) {
-	if (topic.equalsIgnoreCase("geoscope/config/gain")) {
-		samplingDisable();
-		// Set new amplifier gain value
-		amplifierGain = in_payload.toFloat();
-		changeAmplifierGain(amplifierGain);
-		mqttReportGain(amplifierGain);
-		samplingEnable();
-	}
-	else if (topic.equalsIgnoreCase("geoscope/restart")) {
-		samplingDisable();
-		mqttNotify("MQTT Initiated Restart");
-		mqttShutdown();
-		forceReset();
-	}
-	else if (topic.equalsIgnoreCase("geoscope/hb")) {
-		mqttNotify("GEOSCOPE-" + clientId + "working");
-	}
-	else if (topic.substring(0,CONFIG_TOPIC_PREFIX.length()).equalsIgnoreCase(CONFIG_TOPIC_PREFIX)) {
-		cli.feedString(topic.substring(CONFIG_TOPIC_PREFIX.length()) + " " + in_payload);
-		//feed the input + payload as a command to the cli (for reconfiguring)
-	}
 }
 
 void mqttLoad() {

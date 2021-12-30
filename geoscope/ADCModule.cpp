@@ -114,6 +114,7 @@ void changeAmplifierGain(float val) {
 		double gainDivisor = potSteps-potValue;
 		amplifierGain = 1.0 + potValue/gainDivisor + potSteps*gainShiftRatio/gainDivisor;
 		//correct the stored gain value to the actual set value
+		//TODO: re-work this math. The numbers are still coming out way wrong when gainShiftRatio=0
 
 		if (timer1_enabled()) { //if the sampling is running
 			samplingDisable(); //for SPI safety (and to keep the signals on known gain), disable interrupts here.

@@ -13,10 +13,6 @@
 //#include "Timer_c.h"
 #include "Watchdog.h"
 #include "ADCModule.h"
-#include <MQTT.h>						// arduino editor
-//#include <MQTT/src/MQTT.h>				// visual stuio editor
-
-#define MQTT_PACKAGE_SIZE 15000
 
 extern char MQTT_BROKER_IP[CHAR_BUF_SIZE];
 extern int MQTT_BROKER_PORT;
@@ -28,7 +24,6 @@ void mqttConnect();
 void mqttSend();
 void mqttLoad();
 void mqttSave();
-void mqttOnMessage(String &topic, String &payload);
 void mqttReportGain(float newGain);
 void mqttShutdown();
 void mqttNotify(String message);

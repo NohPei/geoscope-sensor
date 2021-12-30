@@ -150,4 +150,5 @@ void loop() {
 			cli.getInputPort()->read();
 	}
 	ESP.wdtFeed();
+	//delay(1); //so the modem can possibly sleep sometimes
 }
