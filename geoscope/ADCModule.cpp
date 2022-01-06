@@ -4,6 +4,7 @@
 
 #include "ADCModule.h"
 #include "cli.h"
+#include "Network.h"
 
 
 bool fullfilledBuffer = false;
@@ -11,6 +12,8 @@ unsigned int currentBufferRow = 0;
 unsigned int currentBufferPosition = 0;
 uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 volatile uint32_t adcReadableTime_cycles = 0;
+volatile uint64_t last_macTime = 0;
+uint64_t packet_macTime = 0;
 
 //SPI Chip Select pins
 #define adcSSpin 4 // ADC slave select pin
@@ -41,10 +44,25 @@ void adcSetup() {
 	samplingEnable();
 }
 
+union wide_reg_t {
+		uint64_t r64;
+		struct {
+			uint32_t hi;
+			uint32_t lo;
+		} r32; 
+};
+
 //ADC sampling interrupt handler
 void IRAM_ATTR adcEnable_isr() {
+	// wide_reg_t tsf;
+
 	digitalWrite(adcSSpin,LOW); //dropping the SS pin enables the ADC, captures and holds one sample
-	adcReadableTime_cycles = ESP.getCycleCount() + ADC_HOLD_TIME_CYCLES;
+
+	//capture the sample timestamp
+	last_macTime = esp8266_sta_tsf_time();
+
+
+	//TODO: implement PD control for TIMER1_WRITE_TIME based on d/dt (last_macTime)
 }
 
 //disable and reset the sampling
@@ -66,7 +84,7 @@ void samplingEnable() {
 }
 
 void adcPoll() {
-	if (!digitalRead(adcSSpin) && ESP.getCycleCount() > adcReadableTime_cycles) { //if we've enabled the ADC and it's ready to be read
+	if (!digitalRead(adcSSpin)) { //if we've enabled the ADC and it's ready to be read
 		uint16_t rawVal = SPI.transfer16(0); //the ADC doesn't take input, but we have to send something
 		rawVal = rawVal >> 1; //16 bits transferred: 1 null, 12 data, 3 junk. Throw away the junk
 		rawVal &= 0x0FFF; //only the lower 12 bits are valid, so toss the high 4 bits
@@ -81,6 +99,7 @@ void adcPoll() {
 			fullfilledBuffer = true;
 			currentBufferPosition = 0;
 			currentBufferRow++;
+			packet_macTime = last_macTime;
 			if (currentBufferRow == RAW_ROW_BUFFER_SIZE) {
 				currentBufferRow = 0;
 			}

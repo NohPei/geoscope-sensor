@@ -8,7 +8,6 @@
 #define MQTT_MAX_PACKET_SIZE 15000
 #define MQTT_MAX_TRANSFER_SIZE WIFICLIENT_MAX_PACKET_SIZE
 #include <PubSubClient.h>
-//TODO: should we move to a more standard MQTT library? If so, when? Either beween cycles or after second cycle.
 
 #include <string.h>
 #include <strings.h>
@@ -147,7 +146,8 @@ void mqttSend() {
 			payload += String(rawBuffer[buffer_row][i]) + ",";
 		}
 		payload.remove(payload.length()-1); //trash that last ','
-		payload += "],\"gain\":" + String(amplifierGain, 3) + "}";
+		payload += "],\"gain\":" + String(amplifierGain, 3);
+		payload += ",\"sendTime\":" + String(packet_macTime) + "}";
 
 		mqttclient.publish(MQTT_TOPIC.c_str() , payload.c_str());
 	}
