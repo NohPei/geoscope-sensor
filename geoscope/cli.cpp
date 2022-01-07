@@ -57,7 +57,6 @@ bool net_commit(Commander &cmd) {
 
 	if (changed) { //if anything vital changed
 		wifiSetup(); //reload WiFi config
-		yield(); //let the WiFi update/reconnect
 		saveWifiConfig(); //store the WiFi config in FS
 		forceReset(); //restart to apply changes
 	}
@@ -410,7 +409,7 @@ bool adc_ratio(Commander &cmd) {
 
 bool adc_dump(Commander &cmd) {
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
-	minYield(2000); //wait a couple seconds for the user to read the info
+	delay(2000); //wait a couple seconds for the user to read the info
 	cmd.startStreaming();
 	return 0;
 }
