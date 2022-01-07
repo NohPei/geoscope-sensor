@@ -94,7 +94,8 @@ void mqttSetup() {
 
 void mqttShutdown() {
 	mqttNotify(F("Shutting Down Gracefully"));
-	yield();
+	mqttclient.disconnect();
+	delay(10);
 }
 
 void mqttConnect() {
@@ -153,7 +154,6 @@ void mqttSend() {
 	}
 
 	mqttclient.loop();
-	yield();
 }
 
 void mqttLoad() {

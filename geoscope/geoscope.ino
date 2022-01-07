@@ -25,14 +25,12 @@ void ota_startup() {
 	if (OTA_FS_UPDATE) {
 		cli.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
 		mqttNotify("OTA Filesystem Update");
-		yield();
 		LittleFS.end();
 	}
 	else {
 		backup(); //save configurations to FS
 		mqttNotify("OTA Firmware Update");
 		mqttShutdown();
-		yield();
 		cli.println(F("> Updating Firmware over OTA"));
 	}
 }
