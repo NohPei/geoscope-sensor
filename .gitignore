@@ -270,3 +270,8 @@ tags
 .gcc-flags.json
 .pio
 compile_commands.json
+
+## Local
+# CCLS
+.ccls-cache/
+
