@@ -12,7 +12,7 @@
 #include"esp_undocumented.h"
 
 typedef uint64_t timestamp_t;
-typedef int64_t timedelta_t;
+typedef int64_t timedelta_t; //differences betweeen timestamps
 
 typedef struct {
 	timestamp_t local;
@@ -35,7 +35,7 @@ class ClockController
 		virtual void addTimeSample(timestamp_t local_timestamp,
 				timestamp_t target_timestamp) = 0;
 	protected:
-		timestamp_t currentOffset = 0;
+		timedelta_t currentOffset = 0;// I changed it from tsp_t to tdelta_t because it could be negative
 };
 
 class AverageClockController : public ClockController
@@ -52,12 +52,12 @@ class AverageClockController : public ClockController
 class LSLRClockController : public ClockController {
 	public:
 		LSLRClockController();
-		timestamp_t convertTime();
+		timestamp_t convertTime(timestamp_t local_timestamp);
 		void addTimeSample(timestamp_t local_timestamp, timestamp_t target_timestamp);
 	private:
 		CircularBuffer<ts_pair_t, CLOCK_AVERAGE_COUNT> samples;
 		float currentSkew = 1.0;
-		float sumLocal, sumLocal2, sumTarget, sumProd;
+		float xx,xy,x_ave,y_ave;
 
 
 };

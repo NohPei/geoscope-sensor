@@ -8,7 +8,7 @@
 #endif
 
 #include<stdint.h>
-#include<ClockControl.h>
+#include "ClockControl.h"
 
 const char* DEFAULT_TOPIC = "rbis_time";
 #define RBIS_DEFAULT_SYNC_PORT 2323
