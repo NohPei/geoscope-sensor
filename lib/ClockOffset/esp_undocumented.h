@@ -13,7 +13,7 @@
 #define WDEVTSF0_TIM_EN_MASK 	0x80000000	
 #define WDEV_COUNT_REG 				0x3ff21004
 
-#define ESP_WDEV_TIMESTAMP 		(* (volatile uint64_t*) WDEVTSF0_TIME_LO)
+#define ESP_WDEV_TIMESTAMP() 		(* (volatile uint64_t*) WDEVTSF0_TIME_LO)
 
 extern int wDev_MacTimSetFunc(void (*handle)(void));
 
