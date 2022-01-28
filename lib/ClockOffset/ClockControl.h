@@ -9,7 +9,6 @@
 
 #include<stdint.h>
 #include<CircularBuffer.h>
-#include"esp_undocumented.h"
 
 typedef uint64_t timestamp_t;
 typedef int64_t timedelta_t; //differences betweeen timestamps
@@ -22,10 +21,6 @@ typedef struct {
 #ifndef CLOCK_AVERAGE_COUNT
 #define CLOCK_AVERAGE_COUNT 50
 #endif
-
-timestamp_t get_system_timestamp() {
-	return (* (timestamp_t*) WDEVTSF0_TIME_LO);
-};
 
 
 class ClockController
