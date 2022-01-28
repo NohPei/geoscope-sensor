@@ -35,7 +35,7 @@ class ClockController
 		virtual void addTimeSample(timestamp_t local_timestamp,
 				timestamp_t target_timestamp) = 0;
 	protected:
-		timedelta_t currentOffset = 0;// I changed it from tsp_t to tdelta_t because it could be negative
+		timedelta_t currentOffset = 0;
 };
 
 class AverageClockController : public ClockController
@@ -55,9 +55,10 @@ class LSLRClockController : public ClockController {
 		timestamp_t convertTime(timestamp_t local_timestamp);
 		void addTimeSample(timestamp_t local_timestamp, timestamp_t target_timestamp);
 	private:
+
 		CircularBuffer<ts_pair_t, CLOCK_AVERAGE_COUNT> samples;
 		float currentSkew = 1.0;
-		float xx,xy,x_ave,y_ave;
+		float sum_xx,sum_xy,sum_x,sum_y;
 
 
 };
