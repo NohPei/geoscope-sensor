@@ -9,18 +9,21 @@ timestamp_t AverageClockController::convertTime(timestamp_t local_timestamp) {
 }
 
 void AverageClockController::addTimeSample(timestamp_t local_timestamp, timestamp_t target_timestamp) {
+	timedelta_t new_delta = target_timestamp - local_timestamp;
 	if (this->samples.isFull()) { // if the buffer's full, use an optimized averaging
 		this->currentOffset -= this->samples.first()/this->samples.size(); //remove the oldest sample from the average
-		timedelta_t new_delta = target_timestamp - local_timestamp;
 		this->samples.push(new_delta); //store the new sample
 		this->currentOffset += this->samples.last()/this->samples.size(); //add the newest sample to the average
 	}
+	else if (this->samples.isEmpty()) {
+		this->currentOffset = new_delta;
+		this->samples.push(new_delta);
+	}
 	else { //when the buffer is still filling, recalculate the average each time
-		this->samples.push(target_timestamp - local_timestamp); //store the new offset
-		this->currentOffset = 0;
-		for (int i = 0; i < this->samples.size(); i++) { //recalculate the average from scratch for the current buffer contents
-			this->currentOffset += this->samples[i]/this->samples.size();
-		}
+		this->samples.push(new_delta); //store the new offset
+		this->currentOffset *= this->samples.size()-1;
+		this->currentOffset += new_delta;
+		this->currentOffset /= this->samples.size()
 	}
 
 }
