@@ -2,10 +2,17 @@
 #include<PacketListener.h>
 #include<ClockControl.h>
 #include<cstdlib>
+#include<algorithm>
 #include<esp_undocumented.h>
 #include<ESP8266Wifi.h>
 #include<PubSubClient.h>
 #include<RBIS.h>
+
+#if (*(uint16_t)*"\0\xff") < 0x0100
+#define BIG_ENDIAN
+#else
+#define LITTLE_ENDIAN
+#endif
 
 packetio::SLIPStream timeStream = packetio::SLIPStream(Serial);
 packetio::PacketListener timeListener = packetio::PacketListener(timeStream);
@@ -56,15 +63,23 @@ void mqttSendFUp(byte[] msg, size_t len) {
 }
 
 
-
-
 void clockUpdate(byte* packet, size_t len) {
-	packet[len] = '\0'; //force a null terminator after the end of the packet
-	next_pps_time = strtoull((char*) packet, NULL, 16);
-	next_pps_time -= (next_pps_time % 1000000); //eliminate the subsecond values
-	next_pps_time += 1000000; //next pulse comes at the start of the next second
+	union {
+		uint64_t timestamp;
+		byte[sizeof(uint64_t)] bytes;
+	} byte_converter;
+	byte_converter.timestamp = 0UL;
+	std::copy(packet, packet+len, bytes);
 
-	//arm the PPS interrupt now
+#ifdef BIG_ENDIAN //incoming data is little endian, so we need to swap it
+	std::reverse(bytes, bytes+sizeof(uint64_t));
+#endif
+
+	//convert received time to time at next PPS pulse
+	byte_converter.timestamp -= (next_pps_time % 1000000); //eliminate the subsecond values
+	byte_converter.timestamp += 1000000; //next pulse comes at the start of the next second
+	next_pps_time = byte_converter.timestamp; //save to the shared variable
+	//arm the PPS interrupt
 	attachInterrupt(PPS_INTERRUPT, pps_isr_handler, RISING);
 		//trigger the real time sample on the next PPS rising edge
 	
