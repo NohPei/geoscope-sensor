@@ -93,7 +93,7 @@ void adcPoll() {
 
 void changeAmplifierGain(float val) {
 	amplifierGain = val;
-	static uint16_t potValue = 0;
+	static int16_t potValue = 0;
 	static const uint16_t potSteps = UINT8_MAX;
 
 	if (val <= 1.0) {
@@ -107,6 +107,9 @@ void changeAmplifierGain(float val) {
 		potValue = round(potSteps * (1-(1+gainShiftRatio)/val));
 		if (potValue >= potSteps) {
 			potValue = potSteps-1;
+		}
+		else if (potValue < 0) {
+			potValue = 0;
 		}
 		double gainDivisor = potSteps-potValue;
 		amplifierGain = 1.0 + potValue/gainDivisor + potSteps*gainShiftRatio/gainDivisor;
