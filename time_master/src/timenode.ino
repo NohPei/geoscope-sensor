@@ -18,11 +18,7 @@ packetio::SLIPStream timeStream = packetio::SLIPStream(Serial);
 packetio::PacketListener timeListener = packetio::PacketListener(timeStream);
 LSLRClockController realTime();
 RBIS_UDP timeSyncClient();
-volatile timestamp_t next_pps_time = 0;
-volatile struct ready_sample {
-	ts_pair_t sample;
-	bool ready;
-} new_sample;
+volatile timestamp_t last_pulse_time;
 
 const char MQTT_BROKER_IP[] = "10.244.1.1";
 const int MQTT_BROKER_PORT = 18884;
@@ -30,21 +26,10 @@ const char MQTT_CLIENT_ID[] = "RBIS_Master";
 const char WIFI_SSID[] = "The Promised LAN";
 const char WIFI_PSK[] = "GoBucks!";
 
-#define PPS_INTERRUPT digitalPinToInterrupt(D0)
+#define SYNC_INTERRUPT digitalPinToInterrupt(D0)
 
-void IRAM_CACHE_ATTR pps_isr_handler() {
-	timestamp_t system_ts = ESP_WDEV_TIMESTAMP();
-	if (next_pps_time != 0) {
-		next_pps_time = 0;
-
-		//disable my interrupt, don't need to go again
-		detachInterrupt(PPS_INTERRUPT)
-
-
-		new_sample.sample.local = system_ts;
-		new_sample.sample.target = next_pps_time;
-		new_sample.ready = true;
-	}
+void IRAM_CACHE_ATTR sync_pulse_isr() {
+	last_pulse_time = ESP_WDEV_TIMESTAMP();
 }
 
 WifiClient dataClient();
@@ -75,14 +60,7 @@ void clockUpdate(byte* packet, size_t len) {
 	std::reverse(bytes, bytes+sizeof(uint64_t));
 #endif
 
-	//convert received time to time at next PPS pulse
-	byte_converter.timestamp -= (next_pps_time % 1000000); //eliminate the subsecond values
-	byte_converter.timestamp += 1000000; //next pulse comes at the start of the next second
-	next_pps_time = byte_converter.timestamp; //save to the shared variable
-	//arm the PPS interrupt
-	attachInterrupt(PPS_INTERRUPT, pps_isr_handler, RISING);
-		//trigger the real time sample on the next PPS rising edge
-	
+	realTime.addTimeSample(last_pulse_time, byte_converter.timestamp);
 }
 
 void setup() {
@@ -100,6 +78,10 @@ void setup() {
 	Serial.begin(256000);
 	timeListener.onMessage(&clockUpdate);
 
+	//arm the PPS interrupt
+	attachInterrupt(SYNC_INTERRUPT, sync_pulse_isr, RISING);
+		//trigger the real time sample on the next PPS rising edge
+
 
 }
 
@@ -107,10 +89,5 @@ void setup() {
 void loop() {
 	timeListener.handle();
 
-
-	if (new_sample.ready) { //check to see if we have a new timestamp pair ready
-		realTime.addTimeSample(new_sample.sample.local, new_sample.sample.target); //if so, tell the clock about it
-		new_sample.ready = NULL;
-	}
 
 }
