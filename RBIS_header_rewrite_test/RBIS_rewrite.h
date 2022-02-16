@@ -1,5 +1,6 @@
 #ifndef _RBIS_H_
 #define _RBIS_H_
+#include "ESPAsyncUDP.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -24,8 +25,10 @@ typedef struct {
 
 class RBIS_UDP {
 public:
-	RBIS_UDP(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, void (*udp_callback)(AsyncUDPPacket)); //set the udp port and the handler
+	RBIS_UDP(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, AsyncUDP udp); //set the udp port and the handler
 	void set_ClkController(ClockController* clk_addr); // set the clockcontroller address
+	void SetUDPhandler(void (*udp_callback)(AsyncUDPPacket));
+	//we set it as udp.onPacket(udp_callback) 
 
 protected:
 	ClockController* clockcontroller;
@@ -33,21 +36,21 @@ protected:
 	//for both, it stores the local timestamps when receiving a UDP packet
 	//for the master, this buffer has timestamps waiting to be sent in a follow-up packet
 	//for the client, this buffer has timestamps waiting to be matched to a follow-up packet
+	AsyncUDP udp;
+	void default_udp_handler(); // what if we set do nothing as a destructor?
 
 
-};
+}; 
 
 class RBIS_UDP_Slave : public RBIS_UDP {
 public:
-	RBIS_UDP_Slave(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, void (*udp_callback)(AsyncUDPPacket)); 
+	RBIS_UDP_Slave(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, AsyncUDP udp );
 	// udp_callback: read udp packets ,get the time (after converting to Unix time by Clockcontroller) and add it into CircularBuffer
 	//the same as the parent class constructor so we will call parent construcor explicitly
 
 	void handelFollowUp(byte[] payload, unsigned int length);
 	// handle the payload in the messages of MQTT form the master node ,convert it to ts_index_t type, match them in the CircularBuffer
 	//and send them into clockcontroller
-
-	//question?: where to receive the MQTT? Do we apply it here or in the .ino file? 
 
 	int8_t ClientMatch(ts_indexed_t tsp_mqtt);
 	// try matching the timestamp from MQTT in the circularbuffer. If succeed, return the index. Otherwise, return -1
@@ -61,7 +64,7 @@ private:
 
 class RBIS_UDP_Master :public RBIS_UDP {
 public:
-	RBIS_UDP_Master(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, void (*udp_callback)(AsyncUDPPacket));
+	RBIS_UDP_Master(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, AsyncUDP udp));
 
 	void sendFollowUp(byte[] payload, unsigned int length);
 	// convert timestamps to byte type payload and send it out through MQTT
