@@ -25,7 +25,7 @@ typedef struct {
 
 class RBIS_UDP {
 public:
-	RBIS_UDP(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, AsyncUDP udp); //set the udp port and the handler
+	RBIS_UDP(uint16_t udp_port = RBIS_DEFAULT_SYNC_PORT, AsyncUDP udp); //set the udp port and the handler    When initialize, should it process "while(!udp.listen(port))"?
 	void set_ClkController(ClockController* clk_addr); // set the clockcontroller address
 	void SetUDPhandler(void (*udp_callback)(AsyncUDPPacket));
 	//we set it as udp.onPacket(udp_callback) 
