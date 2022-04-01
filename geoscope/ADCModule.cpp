@@ -14,6 +14,7 @@ uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 volatile uint32_t adcReadableTime_cycles = 0;
 volatile int64_t last_macTime = 0;
 int64_t packet_macTime = 0;
+volatile int8_t overlength_samples = 0;
 unsigned int sample_rate = 500; //default sample rate is 500Hz
 #define ADC_TIMER_FREQUENCY_HZ F_CPU
 #define ADC_TIMER_DIVIDER TIM_DIV1
@@ -54,8 +55,17 @@ void IRAM_ATTR adcEnable_isr() {
 	digitalWrite(adcSSpin,LOW); //dropping the SS pin enables the ADC, captures and holds one sample
 
 	//capture the sample timestamp
-	last_macTime = ESP_WDEV_TIMESTAMP();
-	//TODO: implement PD control for TIMER1_WRITE_TIME based on d/dt (last_macTime)
+	int64_t new_macTime = ESP_WDEV_TIMESTAMP();
+	unsigned int current_gap_us = new_macTime - last_macTime;
+	last_macTime = new_macTime;
+	uint32_t expected_gap_us = 1000000/sample_rate;
+	if (current_gap_us < expected_gap_us) {
+		overlength_samples--;
+	}
+	else if (current_gap_us > expected_gap_us) {
+		overlength_samples++;
+	}
+	
 
 }
 
@@ -108,6 +118,17 @@ void adcPoll() {
 		}
 
 		digitalWrite(adcSSpin, HIGH); //cut the ADC back off
+
+
+		//check for adjusting the timer value
+		if (overlength_samples > 10) {
+			timer1_write(--adc_timer_max_val);
+			overlength_samples = 0;
+		}
+		else if (overlength_samples < -10) {
+			timer1_write(++adc_timer_max_val);
+			overlength_samples = 0;
+		}
 
 	}
 }
