@@ -392,6 +392,20 @@ bool adc_gain(Commander &cmd) {
 
 }
 
+bool adc_rate(Commander &cmd) {
+	unsigned int payload;
+	if (cmd.getInt(payload)) {
+		changeSampleRate(payload);
+	}
+	else {
+		cmd.rewind();
+		cmd.print(F("Sample Rate: "));
+		cmd.printf("%d Hz\n", sample_rate);
+	}
+	return 0;
+
+}
+
 bool adc_ratio(Commander &cmd) {
 	float payload;
 	if (cmd.getFloat(payload)) {
@@ -420,6 +434,7 @@ const commandList_t adcCommands[] = {
 	{"shift", adc_ratio, "Alias for `ratio`"},
 	{"resistor", adc_ratio, "Alias for `ratio`"},
 	{"res", adc_ratio, "Alias for `ratio`"},
+	{"rate", adc_rate, "Get/Set Sampling Rate"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
 	{"exit", sub_exit, "Return to main prompt"}
 };

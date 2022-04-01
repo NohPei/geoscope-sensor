@@ -12,8 +12,12 @@ unsigned int currentBufferRow = 0;
 unsigned int currentBufferPosition = 0;
 uint16_t rawBuffer[RAW_ROW_BUFFER_SIZE][RAW_COL_BUFFER_SIZE];
 volatile uint32_t adcReadableTime_cycles = 0;
-volatile uint64_t last_macTime = 0;
-uint64_t packet_macTime = 0;
+volatile int64_t last_macTime = 0;
+int64_t packet_macTime = 0;
+unsigned int sample_rate = 500; //default sample rate is 500Hz
+#define ADC_TIMER_FREQUENCY_HZ F_CPU
+#define ADC_TIMER_DIVIDER TIM_DIV1
+unsigned int adc_timer_max_val = ADC_TIMER_FREQUENCY_HZ/sample_rate - 1;
 
 //SPI Chip Select pins
 #define adcSSpin 4 // ADC slave select pin
@@ -38,31 +42,29 @@ void adcSetup() {
 	// Digital pot setup
 	gainLoad();
 	changeAmplifierGain(amplifierGain);
+	changeSampleRate(sample_rate);
 
 	// TIMER1 ISR Setup
 	timer1_isr_init();
 	samplingEnable();
 }
 
-union wide_reg_t {
-		uint64_t r64;
-		struct {
-			uint32_t hi;
-			uint32_t lo;
-		} r32; 
-};
-
 //ADC sampling interrupt handler
 void IRAM_ATTR adcEnable_isr() {
-	// wide_reg_t tsf;
-
 	digitalWrite(adcSSpin,LOW); //dropping the SS pin enables the ADC, captures and holds one sample
 
 	//capture the sample timestamp
-	last_macTime = esp8266_sta_tsf_time();
-
-
+	last_macTime = ESP_WDEV_TIMESTAMP();
 	//TODO: implement PD control for TIMER1_WRITE_TIME based on d/dt (last_macTime)
+
+}
+
+void changeSampleRate(unsigned int new_rate) {
+	sample_rate = new_rate;
+	adc_timer_max_val = ADC_TIMER_FREQUENCY_HZ/sample_rate - 1;
+	timer1_write(adc_timer_max_val);
+
+	gainSave();
 }
 
 //disable and reset the sampling
@@ -78,8 +80,8 @@ void samplingDisable() {
 //enable sampling by interrupt
 void samplingEnable() {
 	timer1_attachInterrupt(adcEnable_isr);
-	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);			// 80MHz / 16 = 5MHz
-	timer1_write(TIMER1_WRITE_TIME);
+	timer1_enable(ADC_TIMER_DIVIDER, TIM_EDGE, TIM_LOOP);			// 80MHz / 16 = 5MHz
+	timer1_write(adc_timer_max_val);
 	SPI.beginTransaction(adcConfig);
 }
 
@@ -159,6 +161,11 @@ void gainLoad() {
 	if (storage)
 		gainShiftRatio = storage.readString().toFloat();
 	storage.close();
+
+	storage = LittleFS.open("/config/rate", "r");
+	if (storage)
+		sample_rate = storage.parseInt();
+	storage.close();
 }
 
 void gainSave() {
@@ -168,5 +175,9 @@ void gainSave() {
 
 	storage = LittleFS.open("/config/rPotRatio", "w");
 	storage.printf("%f\n", gainShiftRatio);
+	storage.close();
+
+	storage = LittleFS.open("/config/rate", "w");
+	storage.printf("%d\n", sample_rate);
 	storage.close();
 }

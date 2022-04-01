@@ -12,27 +12,32 @@
 #include "main.h"
 #include <IPAddress.h>
 
-//TSF Register Addresses - imported from eagle_soc.h in RTOS SDK
-// 	references:
-// 	https://github.com/espressif/ESP8266_RTOS_SDK/blob/v3.4/components/esp8266/include/esp8266/eagle_soc.h
-// 	https://github.com/espressif/ESP8266_RTOS_SDK/blob/v3.4/components/esp8266/lib/libnet80211_dbg.a (decompiled)
-extern "C" {
-	extern int64_t WdevTimOffSet;
-}
-
-inline int64_t esp8266_sta_tsf_time() {
-	return WdevTimOffSet + (*(int64_t*) 0x3ffe9a94) + (*(uint64_t*)0x3ff20c00);
-}
-
-inline int64_t esp8266_ap_tsf_time() {
-	return ( *(int64_t*) 0x3ffe21048);
-}
-
-//TODO: this still isn't getting us the TSF value. Instead, it's just a running count of microseconds
-
-
 extern char SSID[32], PASSWORD[32];
 extern IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP, DNS;
+
+# ifdef ESP8266
+//Undocumented ESP8266 registers
+#define WDEVTSF0_TIME_LO 			0x3ff21004
+#define WDEVTSF0_TIME_HI 			0x3ff21008
+#define WDEVTSFSW0_LO 				0x3ff21018
+#define WDEVTSFSW0_HI 				0x3ff2101C
+#define WDEVTSF0_TIMER_LO 		0x3ff2109c
+#define WDEVTSF0_TIMER_HI 		0x3ff210a0
+#define WDEVTSF0_TIMER_ENA 		0x3ff21098
+#define WDEVTSF0_TIM_EN_MASK 	0x80000000	
+#define WDEV_COUNT_REG 				0x3ff21004
+
+#define ESP_WDEV_TIMESTAMP() (* (volatile uint64_t*) WDEVTSF0_TIME_LO)
+
+extern int wDev_MacTimSetFunc(void (*handle)(void));
+# endif
+
+# ifdef ESP32
+
+#include <esp_wifi.h>
+#define ESP_WDEV_TIMESTAMP() esp_wifi_get_tsf_time((wifi_interface_t)0)
+
+# endif
 
 void networkSetup();
 void wifiSetup();
