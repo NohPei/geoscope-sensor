@@ -17,8 +17,10 @@ void networkSetup() {
 	WiFi.disconnect();
 
 	WiFi.persistent(false);
-	WiFi.setPhyMode(WIFI_PHY_MODE_11N);
 	WiFi.mode(WIFI_STA);
+#ifdef ESP8266
+	WiFi.setPhyMode(WIFI_PHY_MODE_11N);
+#endif
 	WiFi.setAutoConnect(true);
 	WiFi.setAutoReconnect(true); //we should reconnect if something happens, too
 

@@ -11,7 +11,12 @@
 
 #include <string.h>
 #include <LittleFS.h>
+
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 
 #define RAW_ROW_BUFFER_SIZE 3
 #define RAW_COL_BUFFER_SIZE 500
