@@ -16,6 +16,11 @@
 #define ADC_HOLD_TIME_CYCLES 8 //from MCP3201 datasheet: t_SUCS >= 100ns
 #define SAMP_CLK_ERROR_THRESHOLD 10 //number of too-short or too-long samples to wait before adjusting the sample clock
 
+# ifdef ESP8266
+#include <ClockControl.h>
+extern AverageClockController localClock;
+# endif
+
 extern MCP41xxx* gainPot;
 extern double gainShiftRatio;
 extern unsigned int sample_rate;

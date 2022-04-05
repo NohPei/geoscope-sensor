@@ -15,7 +15,6 @@ Updated: 02 Oct 2024
 #include "main.h"
 #include <AsyncPing.h>
 
-
 static bool OTA_FS_UPDATE = false;
 
 #define WIFI_PING_INTERVAL_MS 60000
@@ -78,6 +77,18 @@ bool ping_done(const AsyncPingResponse& response) {
 	return true;
 }
 
+#ifdef ESP8266
+#define UDP_TIMESTAMP_PORT 2323
+#include <ESPAsyncUDP.h>
+
+AsyncUDP tsListener;
+AverageClockController localClock;
+
+#endif
+
+
+
+
 
 
 void setup() {
@@ -100,6 +111,23 @@ void setup() {
 	//TODO: switch to new Commander-API shell library
 	cliInit();
 	cli.println(F( "> CLI Ready" ));
+
+#ifdef ESP8266
+	tsListener.listenMulticast(WiFi.localIP(), UDP_TIMESTAMP_PORT);
+	tsListener.onPacket([] (AsyncUDPPacket& packet) {
+			timestamp_t receive_time = ESP_WDEV_TIMESTAMP();
+			if ((packet.isBroadcast() || packet.isMulticast())
+					&& packet.length() == sizeof(int64_t)) {
+				//handle only broadcast packets containing a little-endian int64
+				timestamp_t remote_time = (*(timestamp_t *) packet.data());
+				//ESP8266 is little-endian, so byte order is already correct.
+				localClock.addTimeSample(receive_time, remote_time);
+			}
+		});
+	cli.println(F( "> UDP Timestamps Configured"));
+
+
+#endif
 
 	adcSetup();
 	cli.println(F( "> ADC Configured" ));

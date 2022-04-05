@@ -162,7 +162,11 @@ void mqttSend() {
 		}
 		payload.remove(payload.length()-1); //trash that last ','
 		payload += "],\"gain\":" + String(amplifierGain, 3);
-		payload += ",\"sendTime\":" + String(packet_macTime) + "}";
+#ifdef ESP8266
+		payload += ",\"timestamp\":" + String(localClock.convertTime(packet_macTime)) + "}";
+#else
+		payload += ",\"timestamp\":" + String(packet_macTime) + "}";
+#endif
 
 		mqttclient.publish(MQTT_TOPIC.c_str() , payload.c_str());
 	}
