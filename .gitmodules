@@ -1,0 +1,3 @@
+[submodule "modules/gateway"]
+	path = modules/gateway
+	url = git@github.com:NohPei/geoscope-gateway.git
