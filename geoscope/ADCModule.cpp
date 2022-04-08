@@ -120,17 +120,17 @@ void adcPoll() {
 		digitalWrite(adcSSpin, HIGH); //cut the ADC back off
 
 
-		//check for adjusting the timer value
-		if (overlength_samples > 10) {
-			timer1_write(--adc_timer_max_val);
-			overlength_samples = 0;
-		}
-		else if (overlength_samples < -10) {
-			timer1_write(++adc_timer_max_val);
-			overlength_samples = 0;
-		}
-
 	}
+	//check for adjusting the timer value
+	if (overlength_samples > SAMP_CLK_ERROR_THRESHOLD) {
+		timer1_write(--adc_timer_max_val);
+		overlength_samples = 0;
+	}
+	else if (overlength_samples < -SAMP_CLK_ERROR_THRESHOLD) {
+		timer1_write(++adc_timer_max_val);
+		overlength_samples = 0;
+	}
+
 }
 
 void changeAmplifierGain(float val) {
