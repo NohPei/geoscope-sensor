@@ -12,33 +12,27 @@ void AverageClockController::addTimeSample(timestamp_t local_timestamp, timestam
 	ts_pair_t new_sample;
 	new_sample.local = local_timestamp;
 	new_sample.target = target_timestamp;
+	timedelta_t new_diff = target_timestamp - local_timestamp;
 	if (this->samples.isFull()) { // if the buffer's full, use an optimized averaging
-		this->running_averages.local -= this->samples.first().local/this->samples.size(); //remove the oldest sample from the averages
-		this->running_averages.target -= this->samples.first().target/this->samples.size();
+		timedelta_t oldest_diff = this->samples.first().target - this->samples.first().local;
+		this->currentOffset -= oldest_diff/this->samples.size(); //remove the oldest sample from the average
 		this->samples.push(new_sample); //store the new sample
-		this->running_averages.local += new_sample.local/this->samples.size(); //add the newest sample to the average
-		this->running_averages.target += new_sample.target/this->samples.size();
+		this->currentOffset += new_diff/this->samples.size(); //add the newest sample to the average
 	}
 	else if (this->samples.isEmpty()) {
-		this->running_averages.local = new_sample.local;
-		this->running_averages.target = new_sample.target;
+		this->currentOffset = new_diff;
 		this->samples.push(new_sample);
 	}
 	else { //when the buffer is still filling, recalculate the average each time
 		this->samples.push(new_sample); //store the new offset
 
-		this->running_averages.target /= this->samples.size(); //first, apply the new divisor (do this first to prevent overflows)
-		this->running_averages.local /= this->samples.size();
+		this->currentOffset /= this->samples.size(); //first, apply the new divisor (do this first to prevent overflows)
 
-		this->running_averages.local *= this->samples.size()-1; //then, un-apply the old divisor
-		this->running_averages.target *= this->samples.size()-1;
+		this->currentOffset *= this->samples.size()-1; //then, un-apply the old divisor
 
-		this->running_averages.local += new_sample.local/this->samples.size(); //finally, add the new averaged sample
-		this->running_averages.target += new_sample.target/this->samples.size();
+		this->currentOffset += new_diff/this->samples.size(); //finally, add the new averaged sample
 			//this implementation adds an extra divison step, but reduces the likelihood of integer overflow
 	}
-
-	this->currentOffset = running_averages.target - running_averages.local;
 
 }
 
