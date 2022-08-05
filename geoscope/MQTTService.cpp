@@ -156,34 +156,45 @@ void mqttOnMessage(String & topic, String & in_payload) {
 
 void mqttLoad() {
 	Dir storage = LittleFS.openDir("/config/mqtt");
+	union temp_ptrs {
+		void* v;
+		int num;
+		String* str;
+	} temp;
+	temp.v = NULL;
 	while (storage.next()) {
 		if (storage.isFile()) {
 			File f = storage.openFile("r");
 			if (f) {
-				String temp;
 				switch (f.name()[0]) {
 					case 'i': //IP
-						temp = f.readString();
-						temp.trim();
-						strncpy(MQTT_BROKER_IP, temp.c_str(), CHAR_BUF_SIZE);
+						temp.str = new String(f.readString());
+						temp.str->trim();
+						strncpy(MQTT_BROKER_IP, temp.str->c_str(), CHAR_BUF_SIZE);
 						MQTT_BROKER_IP[CHAR_BUF_SIZE-1] = 0;
+						delete temp.str;
 						break;
 					case 'p': //port
 						MQTT_BROKER_PORT = f.parseInt();
 						break;
 					case 't': //Timeout
-						if (GEOSCOPE_IP.isSet()) //don't load timeouts on DHCP
-							MQTT_BROKER_TIMEOUT = f.parseInt();
+						temp.num = f.parseInt();
+						if (GEOSCOPE_IP.isSet() || temp.num == 0 || temp.num > MQTT_BROKER_TIMEOUT)
+							// don't load shorter timeouts on DHCP
+							MQTT_BROKER_TIMEOUT = temp.num;
 						break;
 					case 'c': //ClientID
-						temp = f.readString();
-						temp.trim();
-						clientId = temp;
+						temp.str = new String(f.readString());
+						temp.str->trim();
+						clientId = *(temp.str);
+						delete temp.str;
 						break;
 					default:
 						//this file doesn't contain a config we use
 						break;
 				}
+				if (temp.v != NULL)
+					temp.v = NULL;
 			}
 		}
 	}
