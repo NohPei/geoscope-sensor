@@ -11,13 +11,8 @@ Author:	Sripong
 #include "Network.h"
 #include "cli.h"
 #include <ArduinoOTA.h>
-#include <ESPWebDAV.h>
 #include "main.h"
 #include <AsyncPing.h>
-
-#define TIMEZONE "America/New_York" //Eastern Standard/Daylight Time
-#define NTP_SERVER "pool.ntp.org" //standard ntp pool server.
-// if better guarantees are needed, try "time.nist.gov"
 
 
 static bool OTA_FS_UPDATE = false;
@@ -30,14 +25,12 @@ void ota_startup() {
 	if (OTA_FS_UPDATE) {
 		cli.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
 		mqttNotify("OTA Filesystem Update");
-		yield();
 		LittleFS.end();
 	}
 	else {
 		backup(); //save configurations to FS
 		mqttNotify("OTA Firmware Update");
 		mqttShutdown();
-		yield();
 		cli.println(F("> Updating Firmware over OTA"));
 	}
 }
@@ -64,9 +57,6 @@ void ota_error(ota_error_t error) {
 		ESP.restart();
 	}
 }
-
-WiFiServer tcp(80);
-ESPWebDAV dav;
 
 
 AsyncPing ping;
@@ -96,8 +86,7 @@ void setup() {
 	LittleFS.begin();
 	Serial.println(F( "> FS Mounted" ));
 
-	loadWifiConfig();
-	wifiSetup();
+	networkSetup();
 	yield();
 	Serial.println(F( "> WiFi Configured" ));
 
@@ -108,15 +97,12 @@ void setup() {
 	cliInit();
 	cli.println(F( "> CLI Ready" ));
 
-	configTime(TIMEZONE, NTP_SERVER);
-	cli.println(F( "> Time Configured" ));
+	adcSetup();
+	cli.println(F( "> ADC Configured" ));
 
 	mqttLoad(); //attempt to load configuration file
 	mqttSetup();
 	cli.println(F( "> MQTT Configured" ));
-
-	adcSetup();
-	cli.println(F( "> ADC Configured" ));
 
 	// OTA Setup
 	ArduinoOTA.onStart(ota_startup);
@@ -125,10 +111,6 @@ void setup() {
 	ArduinoOTA.setHostname(("GEOSCOPE_"+clientId).c_str());
 	ArduinoOTA.begin();
 	cli.println(F( "> OTA Ready" ));
-
-	tcp.begin();
-	dav.begin(&tcp, &LittleFS);
-	cli.println(F( "> Remote FS Access Ready" ));
 
 	ping.on(true, ping_received);
 	ping.on(false, ping_done);
@@ -145,7 +127,6 @@ void setup() {
 // the loop function runs over and over again until power down or reset
 void loop() {
 	ArduinoOTA.handle();
-	dav.handleClient();
 	adcPoll();
 	mqttSend();
 
@@ -167,4 +148,5 @@ void loop() {
 			cli.getInputPort()->read();
 	}
 	ESP.wdtFeed();
+	//delay(1); //so the modem can possibly sleep sometimes
 }

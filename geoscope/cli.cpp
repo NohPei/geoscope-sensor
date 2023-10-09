@@ -57,7 +57,6 @@ bool net_commit(Commander &cmd) {
 
 	if (changed) { //if anything vital changed
 		wifiSetup(); //reload WiFi config
-		yield(); //let the WiFi update/reconnect
 		saveWifiConfig(); //store the WiFi config in FS
 		forceReset(); //restart to apply changes
 	}
@@ -393,6 +392,20 @@ bool adc_gain(Commander &cmd) {
 
 }
 
+bool adc_rate(Commander &cmd) {
+	unsigned int payload;
+	if (cmd.getInt(payload)) {
+		changeSampleRate(payload);
+	}
+	else {
+		cmd.rewind();
+		cmd.print(F("Sample Rate: "));
+		cmd.printf("%d Hz\n", sample_rate);
+	}
+	return 0;
+
+}
+
 bool adc_ratio(Commander &cmd) {
 	float payload;
 	if (cmd.getFloat(payload)) {
@@ -410,7 +423,7 @@ bool adc_ratio(Commander &cmd) {
 
 bool adc_dump(Commander &cmd) {
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
-	minYield(2000); //wait a couple seconds for the user to read the info
+	delay(2000); //wait a couple seconds for the user to read the info
 	cmd.startStreaming();
 	return 0;
 }
@@ -421,6 +434,7 @@ const commandList_t adcCommands[] = {
 	{"shift", adc_ratio, "Alias for `ratio`"},
 	{"resistor", adc_ratio, "Alias for `ratio`"},
 	{"res", adc_ratio, "Alias for `ratio`"},
+	{"rate", adc_rate, "Get/Set Sampling Rate"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
 	{"exit", sub_exit, "Return to main prompt"}
 };

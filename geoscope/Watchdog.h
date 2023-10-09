@@ -12,7 +12,6 @@
 #include "main.h"
 
 void forceReset();
-void minYield(unsigned long millis);
 
 #endif
 

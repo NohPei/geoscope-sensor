@@ -11,9 +11,11 @@
 
 #include "main.h"
 #include <IPAddress.h>
+#include <esp_undocumented.h>
 
 extern char SSID[32], PASSWORD[32];
 extern IPAddress  GATEWAY_IP, NETMASK, GEOSCOPE_IP, DNS;
+
 
 void networkSetup();
 void wifiSetup();
