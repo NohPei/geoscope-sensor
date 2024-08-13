@@ -11,7 +11,7 @@
 
 #include "main.h"
 #include <SPI.h>
-#include "MCP41XXX.h"
+#include <MCP41XXX.h>
 
 #define ADC_HOLD_TIME_CYCLES 8 //from MCP3201 datasheet: t_SUCS >= 100ns
 #define SAMP_CLK_ERROR_THRESHOLD 10 //number of too-short or too-long samples to wait before adjusting the sample clock
