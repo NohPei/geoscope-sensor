@@ -1,26 +1,26 @@
 /**
- * MCP41xxx Arduino SPI Driver
+ * TI TPL0501 Arduino SPI Driver
  * Author: Jesse R Codling
- * Created: 22 Sep 2021
+ * Created: 27 Aug 2024
  * Last Modified: 27 Aug 2024
  */
 
-#ifndef _MCP41XXX_H_
-#define _MCP41XXX_H_
+#ifndef _TPL0501_H_
+#define _TPL0501_H_
 
 #include <Arduino.h>
 #include <SPI.h>
 
-class MCP41xxx
+class TPL0501
 {
 	public:
-		MCP41xxx(uint8_t SSpin);
+		TPL0501(uint8_t SSpin);
 		void write(uint8_t data);
 		// void configureSPI(); unused while maintaining a unified SPI config
-		void shutdown();
 	private:
 		uint8_t pin;
 		// 	Use the same SPI frequency as everything else.
+		// 	Per datasheet, can be up to 25 MHz
 		const SPISettings SPIConfig = SPISettings(800e3, MSBFIRST, SPI_MODE0);
 
 
@@ -28,4 +28,4 @@ class MCP41xxx
 
 
 
-#endif //ndef _MCP41XXX_H_
+#endif //ndef _TPL0501_H_
