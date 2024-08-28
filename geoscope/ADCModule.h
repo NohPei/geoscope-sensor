@@ -11,13 +11,14 @@
 
 #include "main.h"
 #include <SPI.h>
-#include <MCP41XXX.h>
+#include <TPL0501.h>
 
 #define ADC_HOLD_TIME_CYCLES 8 //from MCP3201 datasheet: t_SUCS >= 100ns
 #define SAMP_CLK_ERROR_THRESHOLD 10 //number of too-short or too-long samples to wait before adjusting the sample clock
 
-extern MCP41xxx* gainPot;
+extern TPL0501* gainPot;
 extern double gainShiftRatio;
+extern double gainMin;
 extern unsigned int sample_rate;
 
 void adcSetup();

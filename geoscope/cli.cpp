@@ -417,8 +417,23 @@ bool adc_ratio(Commander &cmd) {
 	}
 	else {
 		cmd.rewind();
-		cmd.print(F("Gain Shift Ratio (R16/R_pot): "));
+		cmd.print(F("Gain Shift Ratio (R_pot/R1): "));
 		cmd.printf("%f\n", gainShiftRatio);
+	}
+	return 0;
+}
+
+bool adc_min(Commander &cmd) {
+	float payload;
+	if (cmd.getFloat(payload)) {
+		gainMin = payload;
+		changeAmplifierGain(amplifierGain);
+		mqttReportGain(amplifierGain);
+	}
+	else {
+		cmd.rewind();
+		cmd.print(F("Calibrated Minimum Gain: "));
+		cmd.printf("%f\n", gainMin);
 	}
 	return 0;
 }
@@ -431,11 +446,15 @@ bool adc_dump(Commander &cmd) {
 }
 
 const commandList_t adcCommands[] = {
-	{"gain", adc_gain, "Get/Set Amplifier gain (min. 1, max >80, rounds to nearest valid value)"},
-	{"ratio", adc_ratio, "Get/Set Amplifier gain shifting ration (R16/R_pot)"},
+	{"gain", adc_gain, "Get/Set Amplifier gain (rounds to nearest valid value)"},
+	{"ratio", adc_ratio, "Get/Set Amplifier gain shifting ration (R_pot/R1)"},
 	{"shift", adc_ratio, "Alias for `ratio`"},
 	{"resistor", adc_ratio, "Alias for `ratio`"},
 	{"res", adc_ratio, "Alias for `ratio`"},
+	{"min", adc_min, "Get/Calibrate Minimum Amplifier Gain"},
+	{"minimum", adc_min, "Alias for `min`"},
+	{"cal", adc_min, "Alias for `min`"},
+	{"calibrate", adc_min, "Alias for `min`"},
 	{"rate", adc_rate, "Get/Set Sampling Rate"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
 	{"exit", sub_exit, "Return to main prompt"}
