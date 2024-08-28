@@ -131,7 +131,7 @@ void mqttSend() {
 		mqttConnect();
 	}
 
-	if (fullfilledBuffer) {
+	if (fullfilledBuffer && mqttclient.connected()) {
 		int buffer_row = 0;
 		if (currentBufferRow == 0) {
 			buffer_row = RAW_ROW_BUFFER_SIZE - 1;
