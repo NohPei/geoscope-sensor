@@ -25,6 +25,8 @@
 //
 // };
 
+//TODO: adapt the console tree to the new Commander-API library
+
 //Network Submenu
 
 bool cli_reboot(Commander&);
@@ -60,9 +62,9 @@ bool net_commit(Commander &cmd) {
 		saveWifiConfig(); //store the WiFi config in FS
 		forceReset(); //restart to apply changes
 	}
-	
+
 	WiFi.config(GEOSCOPE_IP, GATEWAY_IP, NETMASK, DNS);
-	return net_revert(cmd); //if there were no changes, 
+	return net_revert(cmd); //if there were no changes,
 }
 
 bool net_ip(Commander &cmd) {

@@ -90,10 +90,13 @@ void setup() {
 	yield();
 	Serial.println(F( "> WiFi Configured" ));
 
+	//TODO: use ESPTelnetStream from new library
+	//TODO: use new StreamLib tee to print to multiple streams
 	TelnetStream.begin();
 	Serial.println(F( "> Remote Console Configured" ));
 	TelnetStream.println(F( "> Remote Console Configured" ));
 
+	//TODO: switch to new Commander-API shell library
 	cliInit();
 	cli.println(F( "> CLI Ready" ));
 
@@ -135,6 +138,7 @@ void loop() {
 		ping.begin(WiFi.gatewayIP(),5); //try pinging the gateway
 	}
 
+	//TODO: adapt for new Commander-API + 2 Shellminator instances
 	if (cli.isStreaming() && cli.getInputPort()->available()) {
 		while(cli.getInputPort()->available()) //clear the input buffer
 			cli.getInputPort()->read();

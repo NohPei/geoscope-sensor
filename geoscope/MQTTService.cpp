@@ -4,10 +4,12 @@
 
 
 #include "MQTTService.h"
+#include "main.h"
 
 #define MQTT_MAX_PACKET_SIZE 15000
 #define MQTT_MAX_TRANSFER_SIZE WIFICLIENT_MAX_PACKET_SIZE
 #include <PubSubClient.h>
+#include <StreamUtils.h>
 
 #include <string.h>
 #include <strings.h>
@@ -65,8 +67,20 @@ void mqttMessageHandler(char* topic, byte* payload, unsigned int len) {
 		strcat(cmdbuf, " ");
 		strncat(cmdbuf, (char*)payload, len);
 
+		Stream* oldAlt = cli.getAltPort();
+		StringStream tempOut;
+		cli.attachAltPort(&tempOut);
+		//temporarily put capture CLI output in a String, for reporting
+
+
 		cli.feedString(cmdbuf);
 		//feed the input + payload as a command to the cli (for reconfiguring)
+
+
+		mqttNotify(tempOut.str());
+		//send the captured output back over MQTT
+
+		cli.attachAltPort(oldAlt);
 	}
 }
 

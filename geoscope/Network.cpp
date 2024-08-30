@@ -1,6 +1,6 @@
-// 
-// 
-// 
+//
+//
+//
 
 #include "Network.h"
 #include "Watchdog.h"
@@ -99,7 +99,7 @@ void saveWifiConfig() {
 	storage = LittleFS.open("/config/net/key","w");
 	storage.println(PASSWORD);
 	storage.close();
-	
+
 	storage = LittleFS.open("/config/net/ip", "w");
 	storage.println(GEOSCOPE_IP);
 	storage.close();
@@ -107,11 +107,11 @@ void saveWifiConfig() {
 	storage = LittleFS.open("/config/net/gateway","w");
 	storage.println(GATEWAY_IP);
 	storage.close();
-	
+
 	storage = LittleFS.open("/config/net/mask","w");
 	storage.println(NETMASK);
 	storage.close();
-	
+
 	if (WiFi.dnsIP().isSet()) {
 		storage = LittleFS.open("/config/net/dns","w");
 		storage.println(WiFi.dnsIP());
@@ -127,6 +127,8 @@ void initWifiConfig() {
 		//use DHCP by default
 }
 
+//TODO: use new StreamLib tee
+//TODO: replace with Commander-API built-in ipconfig?
 void showWifiConfig() {
 	cli.println("## Active Wifi Configuration.");
 	cli.print("SSID: ");
