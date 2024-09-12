@@ -28,6 +28,7 @@ unsigned int adc_timer_max_val = ADC_TIMER_FREQUENCY_HZ/sample_rate - 1;
 TPL0501* gainPot = NULL;
 double gainShiftRatio = 0;
 double gainMin = 1;
+uint8_t potVal = 0;
 
 
 const SPISettings adcConfig = SPISettings(0.8e6, MSBFIRST, SPI_MODE0);
@@ -137,30 +138,42 @@ void adcPoll() {
 
 void changeAmplifierGain(float val) {
 	amplifierGain = val;
-	static uint8_t potValue = 0;
-	static const uint16_t potSteps = UINT8_MAX;
+	static int16_t newPotValue = 0;
 
 
 	// calculate the nearest gain resistor value
-	potValue = round((val - gainMin) * potSteps / gainShiftRatio);
-	if (potValue >= potSteps) {
-		potValue = potSteps-1;
+	newPotValue = round((val - gainMin) * (float)gainPot->steps() / gainShiftRatio);
+	if (newPotValue >= gainPot->steps()) {
+		newPotValue = gainPot->steps()-1;
 	}
-	else if (potValue < 0) {
-		potValue = 0;
+	else if (newPotValue < 0) {
+		newPotValue = 0;
 	}
-	amplifierGain = gainMin + (double)potValue/(double)potSteps * gainShiftRatio;
+
+	setPotValue(newPotValue);
+
+	gainSave();
+}
+
+void setPotValue(uint16_t newVal) {
+
+	if (newVal < 0)
+		newVal = 0;
+	if (newVal >= gainPot->steps())
+		newVal = gainPot->steps()-1;
+	potVal = newVal;
+
+	amplifierGain = gainMin + (float)newVal/(float)gainPot->steps() * gainShiftRatio;
 	//correct the stored gain value to the actual set value
 
 	if (timer1_enabled()) { //if the sampling is running
 		samplingDisable(); //for SPI safety (and to keep the signals on known gain), disable interrupts here.
-		gainPot->write(potValue);
+		gainPot->write(potVal);
 		samplingEnable();
 	}
 	else
-		gainPot->write(potValue);
+		gainPot->write(potVal);
 
-	gainSave();
 }
 
 void gainLoad() {

@@ -19,6 +19,7 @@
 extern TPL0501* gainPot;
 extern double gainShiftRatio;
 extern double gainMin;
+extern uint8_t potVal;
 extern unsigned int sample_rate;
 
 void adcSetup();
@@ -26,6 +27,7 @@ void adcPoll();
 void samplingEnable();
 void samplingDisable();
 void changeAmplifierGain(float);
+void setPotValue(uint16_t);
 void changeSampleRate(unsigned int);
 void gainSave();
 void gainLoad();

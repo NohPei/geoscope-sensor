@@ -25,8 +25,6 @@
 //
 // };
 
-//TODO: adapt the console tree to the new Commander-API library
-
 //Network Submenu
 
 bool cli_reboot(Commander&);
@@ -438,6 +436,22 @@ bool adc_min(Commander &cmd) {
 	return 0;
 }
 
+
+bool adc_val(Commander &cmd) {
+	int16_t payload;
+	if (cmd.getInt(payload)) {
+		setPotValue(payload);
+	}
+	else {
+		cmd.rewind();
+		cmd.print(F("Potentiometer set to: "));
+		cmd.printf("%d\n", potVal);
+	}
+	return 0;
+}
+
+//TODO: need a better calibration process, doing the math internally. Should be able to just enter the real gain and let the rest get fixed.
+
 bool adc_dump(Commander &cmd) {
 	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
 	delay(2000); //wait a couple seconds for the user to read the info
@@ -455,6 +469,8 @@ const commandList_t adcCommands[] = {
 	{"minimum", adc_min, "Alias for `min`"},
 	{"cal", adc_min, "Alias for `min`"},
 	{"calibrate", adc_min, "Alias for `min`"},
+	{"pos", adc_val, "Get/Set Potentiometer Value directly"},
+	{"val", adc_val, "Alias for `pos`"},
 	{"rate", adc_rate, "Get/Set Sampling Rate"},
 	{"dump", adc_dump, "Start streaming raw ADC data"},
 	{"exit", sub_exit, "Return to main prompt"}

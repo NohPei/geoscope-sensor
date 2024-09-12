@@ -2,7 +2,7 @@
  * TI TPL0501 Arduino SPI Driver
  * Author: Jesse R Codling
  * Created: 27 Aug 2024
- * Last Modified: 27 Aug 2024
+ * Last Modified: 12 Sep 2024
  */
 
 #ifndef _TPL0501_H_
@@ -17,6 +17,7 @@ class TPL0501
 		TPL0501(uint8_t SSpin);
 		void write(uint8_t data);
 		// void configureSPI(); unused while maintaining a unified SPI config
+		static uint16_t steps();
 	private:
 		uint8_t pin;
 		// 	Use the same SPI frequency as everything else.

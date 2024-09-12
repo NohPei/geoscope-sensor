@@ -2,7 +2,7 @@
  * TI TPL0501 Arduino SPI Driver
  * Author: Jesse R Codling
  * Created: 27 Aug 2024
- * Last Modified: 27 Aug 2024
+ * Last Modified: 12 Sep 2024
  */
 
 
@@ -22,4 +22,8 @@ void TPL0501::write(uint8_t data) {
 	digitalWrite(this->pin, HIGH);
 	SPI.endTransaction();
 
+}
+
+uint16_t TPL0501::steps() {
+	return 256;
 }
