@@ -130,17 +130,17 @@ void initWifiConfig() {
 //TODO: use new StreamLib tee
 //TODO: replace with Commander-API built-in ipconfig?
 void showWifiConfig() {
-	cli.println("## Active Wifi Configuration.");
-	cli.print("SSID: ");
-	cli.println(WiFi.SSID());
-	cli.print("Key: ");
-	cli.println(WiFi.psk());
-	cli.print("IP: ");
-	cli.println(WiFi.localIP());
-	cli.print("Default Gateway: ");
-	cli.println(WiFi.gatewayIP());
-	cli.print("Subnet Mask: ");
-	cli.println(WiFi.subnetMask());
-	cli.print("Primary DNS: ");
-	cli.println(WiFi.dnsIP());
+	out->println("## Active Wifi Configuration.");
+	out->print("SSID: ");
+	out->println(WiFi.SSID());
+	out->print("Key: ");
+	out->println(WiFi.psk());
+	out->print("IP: ");
+	out->println(WiFi.localIP());
+	out->print("Default Gateway: ");
+	out->println(WiFi.gatewayIP());
+	out->print("Subnet Mask: ");
+	out->println(WiFi.subnetMask());
+	out->print("Primary DNS: ");
+	out->println(WiFi.dnsIP());
 }

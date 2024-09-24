@@ -62,25 +62,17 @@ void mqttMessageHandler(char* topic, byte* payload, unsigned int len) {
 		mqttNotify("GEOSCOPE-" + clientId + "working");
 	}
 	else if (strncasecmp(topic, CONFIG_TOPIC_PREFIX.c_str(), CONFIG_TOPIC_PREFIX.length()) == 0) {
-		char cmdbuf[CHAR_BUF_SIZE];
-		strncpy(cmdbuf, topic+CONFIG_TOPIC_PREFIX.length(), CHAR_BUF_SIZE);
-		strcat(cmdbuf, " ");
-		strncat(cmdbuf, (char*)payload, len);
+		String cmdbuf = topic+CONFIG_TOPIC_PREFIX.length();
+		cmdbuf.reserve(CHAR_BUF_SIZE);
+		cmdbuf.concat(" ");
+		cmdbuf.concat((char*)payload, len);
 
-		Stream* oldAlt = cli.getAltPort();
 		StreamString tempOut;
-		cli.attachAltPort(&tempOut);
-		//temporarily put capture CLI output in a String, for reporting
 
-
-		cli.feedString(cmdbuf);
-		//feed the input + payload as a command to the cli (for reconfiguring)
-
+		cli_exec(cmdbuf, &tempOut);
 
 		mqttNotify(tempOut);
 		//send the captured output back over MQTT
-
-		cli.attachAltPort(oldAlt);
 	}
 }
 

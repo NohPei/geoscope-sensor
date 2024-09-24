@@ -103,7 +103,7 @@ void adcPoll() {
 		rawBuffer[currentBufferRow][currentBufferPosition++] = rawVal;
 
 		if (cli.isStreaming()) {
-			cli.println(rawVal,DEC);
+			out->println(rawVal,DEC);
 		}
 
 
