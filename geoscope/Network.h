@@ -22,6 +22,6 @@ void wifiSetup();
 void loadWifiConfig();
 void saveWifiConfig();
 void initWifiConfig();
-void showWifiConfig();
+void showWifiConfig(Print*);
 
 #endif

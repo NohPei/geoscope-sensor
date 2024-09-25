@@ -6,7 +6,7 @@
 #include "main.h"
 #include "ADCModule.h"
 
-#include <StreamString.h>
+#include <StreamUtils.h>
 
 extern "C" {
 #include <microrl.h>
@@ -202,7 +202,7 @@ bool inline net_load(Commander &cmd) {
 }
 
 bool inline net_dump(Commander &cmd) {
-	showWifiConfig();
+	showWifiConfig(cli.getOutputPort());
 	return 0;
 }
 
@@ -610,6 +610,9 @@ bool restore(Commander &cmd) {
 Commander cli;
 
 bool cli_exec(String command, Stream* outPort) {
+	if (cli.isStreaming())
+		cli.stopStreaming();
+
 	Stream* old_out = cli.getOutputPort();
 
 	cli.attachOutputPort(outPort);
@@ -639,10 +642,7 @@ static Stream* alt_stream = NULL;
 
 
 int mrl_exec(microrl_t* mrl, int argc, const char* const *argv) {
-	if (cli.isStreaming())
-		cli.stopStreaming();
-
-	StreamString combiner;
+	StringStream combiner;
 	for (int i = 0; i < argc; i++) {
 		combiner.print(argv[i]);
 		if (i < argc-1)
@@ -650,9 +650,9 @@ int mrl_exec(microrl_t* mrl, int argc, const char* const *argv) {
 	}
 	bool ran = false;
 	if (mrl == alt_shell)
-		ran = cli_exec(combiner, alt_stream);
+		ran = cli_exec(combiner.str(), alt_stream);
 	else
-		ran = cli_exec(combiner, main_stream);
+		ran = cli_exec(combiner.str(), main_stream);
 	return ran ? 0 : 1;
 }
 
@@ -710,11 +710,10 @@ bool cliInit(Stream &main, Stream &alt) {
 	#ifndef NDEBUG
 	main.print(">>Alt Shell Ready<<");
 	#endif
-	//TODO: switch to StreamLib/TeePrint for most of the general outputs
-	// cli.attachOutputPort(main_stream);
-	// cli.attachAltPort(main_stream);
+	cli.echo(false);
+	cli.echoToAlt(false);
 	cli.commandPrompt(false);
-	cli.copyRepyAlt(true);
+	cli.copyRepyAlt(false);
 
 	mrl_set_prompt(prompt_main);
 

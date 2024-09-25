@@ -9,7 +9,7 @@
 #define MQTT_MAX_PACKET_SIZE 15000
 #define MQTT_MAX_TRANSFER_SIZE WIFICLIENT_MAX_PACKET_SIZE
 #include <PubSubClient.h>
-#include <StreamString.h>
+#include <StreamUtils.h>
 
 #include <string.h>
 #include <strings.h>
@@ -67,11 +67,11 @@ void mqttMessageHandler(char* topic, byte* payload, unsigned int len) {
 		cmdbuf.concat(" ");
 		cmdbuf.concat((char*)payload, len);
 
-		StreamString tempOut;
+		StringStream tempOut;
 
 		cli_exec(cmdbuf, &tempOut);
 
-		mqttNotify(tempOut);
+		mqttNotify(tempOut.str());
 		//send the captured output back over MQTT
 	}
 }

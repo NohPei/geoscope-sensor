@@ -14,7 +14,7 @@ Updated: 02 Oct 2024
 #include <ArduinoOTA.h>
 #include "main.h"
 #include <AsyncPing.h>
-#include <TeePrint.h>
+#include <StreamUtils.h>
 
 
 static bool OTA_FS_UPDATE = false;
@@ -95,7 +95,7 @@ void setup() {
 	out->println(F( "> WiFi Configured" ));
 
 	TelnetStream.begin();
-	out = new TeePrint(Serial, TelnetStream);
+	out = new WriteLoggingStream(Serial, TelnetStream);
 	out->println(( "> Remote Console Configured" ));
 
 	cliInit();
