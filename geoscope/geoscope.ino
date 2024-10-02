@@ -1,7 +1,8 @@
 /*
-Name:		geoscope.ino
-Created:	6/13/2018 1:34:31 PM
-Author:	Sripong
+Name: geoscope.ino
+Original Created: 6/13/2018 1:34:31 PM
+Original Author: Sripong Ariyadech (liurln)
+Updated: 02 Oct 2024
  */
 
 // the setup function runs once when you press reset or power the board

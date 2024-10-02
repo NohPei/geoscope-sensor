@@ -273,3 +273,7 @@ compile_commands.json
 
 # CCLS
 .ccls-cache/
+
+## Local Additions
+.cache/
+.vscode/
