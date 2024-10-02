@@ -10,7 +10,7 @@
 #include<stdint.h>
 #include<CircularBuffer.h>
 
-typedef int64_t timestamp_t;
+typedef uint64_t timestamp_t;
 typedef int64_t timedelta_t; //differences betweeen timestamps
 
 typedef struct {
@@ -40,7 +40,9 @@ class AverageClockController : public ClockController
 		AverageClockController();
 		timestamp_t convertTime(timestamp_t local_timestamp);
 		void addTimeSample(timestamp_t local_timestamp, timestamp_t target_timestamp);
-		
+	private:
+		ts_pair_t running_averages;
+
 };
 
 class LSLRClockController : public ClockController {
