@@ -11,11 +11,13 @@
 #include <Commander.h>
 #include <TelnetStream.h>
 
-bool cliInit(Stream &iostream = Serial, Stream &altstream = TelnetStream);
+bool cliInit(Stream &main = Serial, Stream &alt = TelnetStream);
+void cli_loop();
+
+bool cli_exec(String command, Stream* outPort);
 
 extern Commander cli;
 
-bool cli_swap(Commander &cmd = cli);
 bool backup(Commander &cmd = cli);
 bool restore(Commander &cmd = cli);
 

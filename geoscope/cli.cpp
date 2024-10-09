@@ -6,6 +6,11 @@
 #include "main.h"
 #include "ADCModule.h"
 
+#include <StreamUtils.h>
+
+extern "C" {
+#include <microrl.h>
+}
 // #define TRUE_EQUIV_COUNT 5
 // const String TRUE_EQUIV[] = { //strings that will be understood as "true" when setting variables
 // 	"yes",
@@ -24,8 +29,6 @@
 // 	"off"
 //
 // };
-
-//TODO: adapt the console tree to the new Commander-API library
 
 //Network Submenu
 
@@ -199,7 +202,7 @@ bool inline net_load(Commander &cmd) {
 }
 
 bool inline net_dump(Commander &cmd) {
-	showWifiConfig();
+	showWifiConfig(cli.getOutputPort());
 	return 0;
 }
 
@@ -424,7 +427,7 @@ bool adc_ratio(Commander &cmd) {
 }
 
 bool adc_dump(Commander &cmd) {
-	cmd.println(F("Dumping Raw Data to Terminal. Press any key to stop."));
+	cmd.println(F("Dumping Raw Data to Terminal. Send any command to stop."));
 	delay(2000); //wait a couple seconds for the user to read the info
 	cmd.startStreaming();
 	return 0;
@@ -506,6 +509,15 @@ const uint16_t fsCmdCount = sizeof(fsCommands);
 
 //Main menu and return functions
 
+void inline mrl_set_prompt(const char*);
+
+const char* prompt_main = "CMD";
+const char* prompt_net = "net";
+const char* prompt_adc = "adc";
+const char* prompt_mqtt = "mqtt";
+const char* prompt_fs = "fs";
+
+
 bool cli_reboot(Commander &cmd) {
 	mqttNotify("CLI Initiated Shutdown");
 	mqttShutdown();
@@ -514,41 +526,42 @@ bool cli_reboot(Commander &cmd) {
 }
 
 bool cli_net(Commander &cmd) {
-	if (cmd.transferTo(netCommands, netCmdCount, "net")) {
+	if (cmd.transferTo(netCommands, netCmdCount, prompt_net)) {
 		//exit immediately if a command was found
 		sub_exit(cmd);
 	}
+	else
+		mrl_set_prompt(prompt_net);
 	return 0;
 }
 
 bool cli_adc(Commander &cmd) {
-	if (cmd.transferTo(adcCommands, adcCmdCount, "adc")) {
+	if (cmd.transferTo(adcCommands, adcCmdCount, prompt_adc)) {
 		//exit immediately if a command was found
 		sub_exit(cmd);
 	}
+	else
+		mrl_set_prompt(prompt_adc);
 	return 0;
 }
 
 bool cli_mqtt(Commander &cmd) {
-	if (cmd.transferTo(mqttCommands, mqttCmdCount, "mqtt")) {
+	if (cmd.transferTo(mqttCommands, mqttCmdCount, prompt_mqtt)) {
 		//exit immediately if a command was found
 		sub_exit(cmd);
 	}
-	return 0;
-}
-
-bool cli_swap(Commander &cmd) {
-	Stream* oldAlt = cmd.getAltPort();
-	cmd.attachAltPort(cmd.getInputPort());
-	cmd.attachInputPort(oldAlt);
-	cmd.attachOutputPort(oldAlt);
+	else
+		mrl_set_prompt(prompt_mqtt);
 	return 0;
 }
 
 bool cli_fs(Commander &cmd) {
-	if (cmd.transferTo(fsCommands, fsCmdCount, "fs")) {
+	if (cmd.transferTo(fsCommands, fsCmdCount, prompt_fs)) {
 		//exit immediately if a command was found
 		sub_exit(cmd);
+	}
+	else {
+		mrl_set_prompt(prompt_fs);
 	}
 	return 0;
 }
@@ -558,7 +571,6 @@ const commandList_t mainCommands[] = {
 	{"net", cli_net, "Configure the network connection (changes made are applied by `net commit`)"},
 	{"mqtt", cli_mqtt, "Configure broker connection and logging (changes made are applied by `mqtt commit`)"},
 	{"adc", cli_adc, "Configure gain and adc debug mode"},
-	{"swap", cli_swap, "Switch console input (between local Serial and Telnet)"},
 	{"fs", cli_fs, "Filesystem operations"},
 	{"reboot", cli_reboot, "Restart this sensor"}
 };
@@ -566,7 +578,8 @@ const commandList_t mainCommands[] = {
 const uint16_t mainCmdCount = sizeof(mainCommands);
 
 bool sub_exit(Commander &cmd) {
-	cmd.transferBack(mainCommands, mainCmdCount, "CMD");
+	cmd.transferBack(mainCommands, mainCmdCount, prompt_main);
+	mrl_set_prompt(prompt_main);
 	return 0;
 }
 
@@ -596,18 +609,146 @@ bool restore(Commander &cmd) {
 
 Commander cli;
 
+bool cli_exec(String command, Stream* outPort) {
+	if (cli.isStreaming())
+		cli.stopStreaming();
+
+	Stream* old_out = cli.getOutputPort();
+
+	cli.attachOutputPort(outPort);
+
+	#ifndef NDEBUG
+	outPort->print("Running Command: \n\t");
+	outPort->print(command);
+	outPort->println();
+	#endif
+
+	bool ran = cli.feedString(command);
+	//run the actual command
+
+	#ifndef NDEBUG
+	outPort->println("Run Finished");
+	#endif
+	cli.attachOutputPort(old_out);
+
+	return ran;
+}
+
+static microrl_t* main_shell = NULL;
+static microrl_t* alt_shell = NULL;
+
+static Stream* main_stream = NULL;
+static Stream* alt_stream = NULL;
+
+
+int mrl_exec(microrl_t* mrl, int argc, const char* const *argv) {
+	StringStream combiner;
+	for (int i = 0; i < argc; i++) {
+		combiner.print(argv[i]);
+		if (i < argc-1)
+			combiner.print(" ");
+	}
+	bool ran = false;
+	if (mrl == alt_shell)
+		ran = cli_exec(combiner.str(), alt_stream);
+	else
+		ran = cli_exec(combiner.str(), main_stream);
+	return ran ? 0 : 1;
+}
+
+int mrl_print(microrl_t* mrl, const char* str) {
+	if (mrl == alt_shell && alt_stream)
+		return alt_stream->print(str);
+	else
+		return main_stream->print(str);
+}
+
+#define PROMPT_SIZE 10
+void inline mrl_set_prompt(const char* newPrompt) {
+	static char prompt_buf[PROMPT_SIZE];
+	snprintf_P(prompt_buf, PROMPT_SIZE, PSTR("%s>"), newPrompt);
+	prompt_buf[PROMPT_SIZE-1] = '\0';
+
+	if (main_shell)
+		microrl_set_prompt(main_shell, prompt_buf);
+	if (alt_shell)
+		microrl_set_prompt(alt_shell, prompt_buf);
+
+}
+
+
 //@method: cliInit
 //@desc: configures the CLI interface using the standard Serial interface
-bool cliInit(Stream &iostream, Stream &altstream) {
-	//configure using Serial, start with main command set
-	cli.begin(&iostream, mainCommands, mainCmdCount);
-	cli.attachAltPort(&altstream);
-	cli.echo(true);
-	cli.commandPrompt(true);
-	cli.copyRepyAlt(true);
+bool cliInit(Stream &main, Stream &alt) {
+	if (main_shell || alt_shell)
+		return false;
+
+	//start with main command set, set no input port
+	cli.begin(NULL, mainCommands, mainCmdCount);
+	//
+	main_stream = &main;
+	alt_stream = &alt;
+
+	main_shell = new microrl_t();
+	if (microrl_init(main_shell, mrl_print, mrl_exec) != 0) {
+		main_shell = NULL;
+		#ifndef NDEBUG
+		main.print(">>Main Shell Failed!!<<");
+		#endif
+	}
+	#ifndef NDEBUG
+	main.print(">>Main Shell Ready<<");
+	#endif
+
+	alt_shell = new microrl_t();
+	if (microrl_init(alt_shell, mrl_print, mrl_exec) != 0) {
+		alt_shell = NULL;
+		#ifndef NDEBUG
+		main.print(">>Alt Shell Failed!!<<");
+		#endif
+	}
+	#ifndef NDEBUG
+	main.print(">>Alt Shell Ready<<");
+	#endif
+	cli.echo(false);
+	cli.echoToAlt(false);
+	cli.commandPrompt(false);
+	cli.copyRepyAlt(false);
+
+	mrl_set_prompt(prompt_main);
 
 	net_revert(cli); //clear pending network configs at start
 	mqtt_revert(cli); //clear pending MQTT configs, too
 
 	return true;
+}
+
+#define SMALL_BUF_SIZE PROMPT_SIZE
+void cli_loop() {
+	static int readable, len;
+	static char input[SMALL_BUF_SIZE];
+
+	if (main_shell && main_stream) {
+		readable = main_stream->available();
+		if (readable) {
+			//read all available chars
+			len = main_stream->read(input, std::max(readable, SMALL_BUF_SIZE));
+
+			//send to readline
+			microrl_processing_input(main_shell, input, len);
+		}
+	}
+	if (alt_shell && alt_stream) {
+		readable = alt_stream->available();
+		if (readable) {
+			//read all available chars
+			len = alt_stream->read(input, std::max(readable, SMALL_BUF_SIZE));
+
+			//send to readline
+			microrl_processing_input(alt_shell, input, len);
+
+		}
+	}
+
+	cli.update();
 }

@@ -14,6 +14,7 @@ Updated: 02 Oct 2024
 #include <ArduinoOTA.h>
 #include "main.h"
 #include <AsyncPing.h>
+#include <StreamUtils.h>
 
 
 static bool OTA_FS_UPDATE = false;
@@ -24,7 +25,7 @@ static unsigned long nextPingTime = 0;
 void ota_startup() {
 	OTA_FS_UPDATE = ArduinoOTA.getCommand() == U_FS;
 	if (OTA_FS_UPDATE) {
-		cli.println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
+		out->println(F("<< WARNING: Updating Filesystem via OTA Update >>"));
 		mqttNotify("OTA Filesystem Update");
 		LittleFS.end();
 	}
@@ -32,7 +33,7 @@ void ota_startup() {
 		backup(); //save configurations to FS
 		mqttNotify("OTA Firmware Update");
 		mqttShutdown();
-		cli.println(F("> Updating Firmware over OTA"));
+		out->println(F("> Updating Firmware over OTA"));
 	}
 }
 
@@ -45,16 +46,16 @@ void ota_done() {
 
 void ota_error(ota_error_t error) {
 	if (OTA_FS_UPDATE) {
-		cli.print(F("<< FS UPDATE ERROR "));
-		cli.print(error);
-		cli.println(F( " >>" ));
+		out->print(F("<< FS UPDATE ERROR "));
+		out->print(error);
+		out->println(F( " >>" ));
 		mqttNotify("OTA FS Update Error");
 		ota_done();
 	}
 	else {
-		cli.print(F( "<< FIRMWARE UPDATE ERROR " ));
-		cli.print(error);
-		cli.println(F( " >>" ));
+		out->print(F( "<< FIRMWARE UPDATE ERROR " ));
+		out->print(error);
+		out->println(F( " >>" ));
 		ESP.restart();
 	}
 }
@@ -78,35 +79,34 @@ bool ping_done(const AsyncPingResponse& response) {
 	return true;
 }
 
-
+Print* out = NULL;
 
 void setup() {
 	Serial.begin(115200);
-	Serial.println(F( "\n> Starting Geoscope Boot" ));
+	out = &Serial;
+
+	out->println(F( "\n> Starting Geoscope Boot" ));
 
 	LittleFS.begin();
-	Serial.println(F( "> FS Mounted" ));
+	out->println(F( "> FS Mounted" ));
 
 	networkSetup();
 	yield();
-	Serial.println(F( "> WiFi Configured" ));
+	out->println(F( "> WiFi Configured" ));
 
-	//TODO: use ESPTelnetStream from new library
-	//TODO: use new StreamLib tee to print to multiple streams
 	TelnetStream.begin();
-	Serial.println(F( "> Remote Console Configured" ));
-	TelnetStream.println(F( "> Remote Console Configured" ));
+	out = new WriteLoggingStream(Serial, TelnetStream);
+	out->println(( "> Remote Console Configured" ));
 
-	//TODO: switch to new Commander-API shell library
 	cliInit();
-	cli.println(F( "> CLI Ready" ));
+	out->println(F( "> CLI Ready" ));
 
 	adcSetup();
-	cli.println(F( "> ADC Configured" ));
+	out->println(F( "> ADC Configured" ));
 
 	mqttLoad(); //attempt to load configuration file
 	mqttSetup();
-	cli.println(F( "> MQTT Configured" ));
+	out->println(F( "> MQTT Configured" ));
 
 	// OTA Setup
 	ArduinoOTA.onStart(ota_startup);
@@ -114,18 +114,16 @@ void setup() {
 	ArduinoOTA.onError(ota_error);
 	ArduinoOTA.setHostname(("GEOSCOPE_"+clientId).c_str());
 	ArduinoOTA.begin();
-	cli.println(F( "> OTA Ready" ));
+	out->println(F( "> OTA Ready" ));
 
 	ping.on(true, ping_received);
 	ping.on(false, ping_done);
 	nextPingTime = millis() + WIFI_PING_INTERVAL_MS;
-	cli.println(F("> Keepalive Ping Enabled"));
+	out->println(F("> Keepalive Ping Enabled"));
 
 	ESP.wdtDisable();
 	ESP.wdtEnable(5000);
-	cli.println(F( "> Boot Complete" ));
-
-	cli.printCommandPrompt();
+	out->println(F( "> Boot Complete" ));
 }
 
 // the loop function runs over and over again until power down or reset
@@ -139,19 +137,8 @@ void loop() {
 		ping.begin(WiFi.gatewayIP(),5); //try pinging the gateway
 	}
 
-	//TODO: adapt for new Commander-API + 2 Shellminator instances
-	if (cli.isStreaming() && cli.getInputPort()->available()) {
-		while(cli.getInputPort()->available()) //clear the input buffer
-			cli.getInputPort()->read();
-		cli.stopStreaming();
-	}
-	cli.update();
+	cli_loop();
 
-	if (cli.getAltPort()->available()) { //if we get input on the other port
-		cli_swap(); //swap to that port
-		while(cli.getInputPort()->available()) //clear the input buffer
-			cli.getInputPort()->read();
-	}
 	ESP.wdtFeed();
 	//delay(1); //so the modem can possibly sleep sometimes
 }

@@ -1,1 +1,5 @@
 Copyright 2024 The Regents of the University of Michigan, PEI Lab
+
+This project contains the remastered microrl library (Apache 2.0)
+ * Portion Copyright (c) 2011 Eugene SAMOYLOV
+ * Portion Copyright (c) 2021 Dmitry KARASEV
