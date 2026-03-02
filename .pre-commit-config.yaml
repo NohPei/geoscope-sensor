@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+    rev: v8.30.0
     hooks:
       - id: gitleaks
   -   repo: https://github.com/pre-commit/pre-commit-hooks
@@ -15,7 +15,7 @@ repos:
       -   id: check-added-large-files
       -   id: end-of-file-fixer
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v4.2.0
+    rev: v4.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
